@@ -1,0 +1,981 @@
+<title>Primordia</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Hanken+Grotesk:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one full-viewport living tank; instruments float at the edges like labels on a specimen jar. Single deliberate dark world. */
+:root{
+  color-scheme:dark;
+  --abyss:#03060c; --deep:#071221; --glass:rgba(7,14,26,.74); --line:rgba(160,200,230,.14);
+  --fg:#e4edf5; --mute:#8497ab; --dim:#566679;
+  --lamp:#ffc878; --lamp-ink:#1c1206; --blood:#ff6f7d; --leaf:#62e6a7;
+  --serif:"Instrument Serif","Iowan Old Style",Georgia,serif;
+  --sans:"Hanken Grotesk",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  --gx:max(16px,env(safe-area-inset-left,0px)); --gxr:max(16px,env(safe-area-inset-right,0px));
+}
+html,body{height:100%}
+body{background:var(--abyss);color:var(--fg);font-family:var(--sans);font-size:14px;overflow:hidden;-webkit-font-smoothing:antialiased}
+#app{position:relative;height:100%;overflow:hidden;background:var(--abyss);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+#world{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:crosshair}
+.vig{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at 50% 45%,transparent 45%,rgba(1,3,8,.72) 100%)}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer;background:none;border:0;padding:0}
+button:focus-visible,input:focus-visible{outline:2px solid var(--lamp);outline-offset:2px}
+.lbl{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--mute)}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.panel{background:var(--glass);border:1px solid var(--line);border-radius:10px;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+
+/* masthead */
+#mast{position:absolute;top:16px;left:var(--gx);pointer-events:none;display:flex;flex-direction:column;gap:10px}
+#mast h1{font-family:var(--serif);font-weight:400;font-size:38px;line-height:.9;margin:0;letter-spacing:.01em;text-shadow:0 0 28px rgba(120,220,255,.35)}
+#mast h1 i{color:var(--lamp)}
+.stats{display:flex;gap:18px;flex-wrap:wrap}
+.stat{display:flex;flex-direction:column;gap:2px}
+.stat b{font-family:var(--mono);font-weight:500;font-size:17px;font-variant-numeric:tabular-nums}
+.stat.pred b{color:var(--blood)}
+
+/* field notes */
+#notes{position:absolute;top:128px;left:var(--gx);width:min(320px,calc(100% - 32px));display:flex;flex-direction:column;gap:8px;pointer-events:none}
+#notes .head{display:flex;align-items:center;gap:10px;pointer-events:auto}
+#ask{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--lamp-ink);background:var(--lamp);border-radius:99px;padding:5px 10px}
+#ask:disabled{opacity:.5;cursor:default}
+#notelist{display:flex;flex-direction:column;gap:8px}
+.note{font-family:var(--serif);font-size:17px;line-height:1.25;color:var(--fg);text-shadow:0 1px 10px #000,0 0 3px #000;animation:rise .6s ease both;border-left:2px solid var(--c,var(--mute));padding-left:10px}
+.note em{font-style:italic;color:var(--c,var(--lamp))}
+.note small{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.08em;color:var(--mute);margin-top:2px}
+.note:nth-child(2){opacity:.7}.note:nth-child(3){opacity:.45}.note:nth-child(n+4){display:none}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}}
+
+/* side panel */
+#side{position:absolute;top:16px;right:var(--gxr);width:300px;max-height:calc(100% - 200px);overflow:auto;padding:14px;display:flex;flex-direction:column;gap:12px}
+#side h2{font-family:var(--serif);font-weight:400;font-size:24px;line-height:1.05;margin:0;font-style:italic;text-wrap:balance}
+.rowhead{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.sprow{display:grid;grid-template-columns:10px 1fr auto;gap:9px;align-items:center;width:100%;text-align:left;padding:5px 6px;border-radius:6px;position:relative}
+.sprow:hover{background:rgba(160,200,230,.08)}
+.sprow .sw{width:10px;height:10px;border-radius:50%;box-shadow:0 0 10px currentColor;background:currentColor}
+.sprow em{font-family:var(--serif);font-size:17px;line-height:1.1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sprow .meta{display:block;font-family:var(--mono);font-style:normal;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--mute)}
+.sprow .meta.c2{color:var(--blood)}
+.sprow b{font-family:var(--mono);font-weight:500;font-variant-numeric:tabular-nums}
+.sprow .bar{position:absolute;left:25px;right:6px;bottom:1px;height:1px;background:currentColor;opacity:.5;transform-origin:left}
+#closeSel{font-family:var(--mono);font-size:11px;color:var(--mute);border:1px solid var(--line);border-radius:6px;padding:3px 8px}
+#closeSel:hover{color:var(--fg)}
+.kv{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.kv div{display:flex;flex-direction:column;gap:2px}
+.kv b{font-family:var(--mono);font-weight:500;font-variant-numeric:tabular-nums;font-size:14px}
+.meter{display:grid;grid-template-columns:62px 1fr;gap:8px;align-items:center}
+.meter .track{height:5px;border-radius:3px;background:rgba(160,200,230,.12);overflow:hidden;position:relative}
+.meter .fill{position:absolute;inset:0;transform-origin:left;background:var(--fg);border-radius:3px}
+.meter .fill.e{background:var(--lamp)}.meter .fill.h{background:var(--leaf)}
+.diet .track{background:linear-gradient(90deg,var(--leaf),#c9c38a,var(--blood));height:5px;overflow:visible}
+.diet .pin{position:absolute;top:-3px;width:3px;height:11px;background:#fff;border-radius:2px;margin-left:-1px}
+#brain{width:100%;height:236px;display:block}
+#verdict{font-family:var(--serif);font-size:16px;line-height:1.25;color:var(--mute);margin:0}
+
+/* bottom instruments */
+#stream{position:absolute;left:var(--gx);bottom:76px;width:320px;padding:10px 12px 8px;display:flex;flex-direction:column;gap:6px}
+#streamc{width:100%;height:92px;display:block}
+#mini{position:absolute;right:var(--gxr);bottom:16px;width:168px;height:112px;padding:0;overflow:hidden}
+#minic{width:100%;height:100%;display:block}
+#bar{position:absolute;left:0;right:0;margin-inline:auto;width:fit-content;bottom:16px;display:flex;align-items:center;gap:6px;padding:6px;max-width:calc(100% - 32px);flex-wrap:wrap;justify-content:center}
+.grp{display:flex;align-items:center;gap:2px;padding:0 4px}
+.grp+.grp{border-left:1px solid var(--line);padding-left:8px}
+.tb{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--mute);padding:7px 9px;border-radius:6px;white-space:nowrap}
+.tb:hover{color:var(--fg);background:rgba(160,200,230,.08)}
+.tb[aria-pressed="true"]{color:var(--lamp-ink);background:var(--lamp)}
+.tb.danger[aria-pressed="true"]{background:var(--blood)}
+.sl{display:flex;flex-direction:column;gap:1px;padding:0 4px}
+.sl input{width:84px;accent-color:var(--lamp);height:14px}
+#hint{position:absolute;left:50%;bottom:74px;transform:translateX(-50%);font-family:var(--mono);font-size:11px;color:var(--mute);letter-spacing:.06em;pointer-events:none;text-shadow:0 1px 6px #000;white-space:nowrap;transition:opacity .4s}
+
+/* intro */
+#intro{position:absolute;inset:0;display:grid;place-items:center;background:radial-gradient(ellipse at center,rgba(3,6,12,.55),rgba(3,6,12,.9));transition:opacity .9s ease;padding:24px max(16px,env(safe-area-inset-right,0px)) 24px max(16px,env(safe-area-inset-left,0px))}
+#intro.gone{opacity:0;pointer-events:none}
+.introbox{max-width:620px;display:flex;flex-direction:column;gap:18px;align-items:flex-start}
+.introbox h2{font-family:var(--serif);font-weight:400;font-size:clamp(64px,13vw,132px);line-height:.82;margin:0;letter-spacing:-.01em;text-shadow:0 0 60px rgba(120,220,255,.4)}
+.introbox h2 i{color:var(--lamp)}
+.introbox p{font-family:var(--serif);font-size:clamp(19px,2.6vw,25px);line-height:1.25;margin:0;max-width:30em;text-wrap:pretty}
+.introbox p.fine{font-family:var(--mono);font-size:11px;letter-spacing:.06em;color:var(--mute);line-height:1.6}
+.cta{display:flex;gap:10px;flex-wrap:wrap}
+.cta button{font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;padding:13px 20px;border-radius:99px;border:1px solid var(--line)}
+.cta .go{background:var(--lamp);color:var(--lamp-ink);border-color:var(--lamp)}
+.cta button:hover{filter:brightness(1.12)}
+
+@media (max-width:1180px){#mini{display:none}}
+@media (max-height:640px){#stream{display:none}}
+@media (max-width:960px){
+  #stream{display:none}
+  #side{top:auto;bottom:148px;right:var(--gxr);left:var(--gx);width:auto;max-height:40%}
+  #side.census{display:none}
+  #mast h1{font-size:30px}.stats{gap:12px}.stat b{font-size:14px}
+  #notes{top:112px}.note{font-size:15px}.note:nth-child(n+3){display:none}
+  .sl{display:none}#hint{display:none}
+  .tb{padding:7px 7px;font-size:10px}
+}
+@media (prefers-reduced-motion:reduce){.note{animation:none}#intro{transition:none}}
+</style>
+
+<div id="app">
+  <canvas id="world" aria-label="Living ecosystem of evolving neural organisms"></canvas>
+  <div class="vig"></div>
+
+  <header id="mast">
+    <h1>Primord<i>ia</i></h1>
+    <div class="stats">
+      <div class="stat"><span class="lbl">Tick</span><b id="sT">0</b></div>
+      <div class="stat"><span class="lbl">Alive</span><b id="sN">0</b></div>
+      <div class="stat"><span class="lbl">Species</span><b id="sS">0</b></div>
+      <div class="stat pred"><span class="lbl">Predators</span><b id="sC">0</b></div>
+      <div class="stat"><span class="lbl">Generation</span><b id="sG">0</b></div>
+    </div>
+  </header>
+
+  <section id="notes" aria-live="polite">
+    <div class="head"><span class="lbl">Field notes</span><button id="ask" hidden>Ask Claude what it sees</button></div>
+    <div id="notelist"></div>
+  </section>
+
+  <aside id="side" class="panel census">
+    <div id="census">
+      <div class="rowhead"><span class="lbl">Census of the living</span><span class="lbl" id="cenN"></span></div>
+      <div id="cenlist"></div>
+    </div>
+    <div id="spec" hidden>
+      <div class="rowhead"><span class="lbl" id="spId">Specimen</span><button id="closeSel">Close</button></div>
+      <h2 id="spName">—</h2>
+      <p id="verdict"></p>
+      <div class="kv">
+        <div><span class="lbl">Age</span><b id="kAge">0</b></div>
+        <div><span class="lbl">Gen</span><b id="kGen">0</b></div>
+        <div><span class="lbl">Young</span><b id="kKids">0</b></div>
+        <div><span class="lbl">Kills</span><b id="kKills">0</b></div>
+      </div>
+      <div class="meter"><span class="lbl">Energy</span><div class="track"><div class="fill e" id="mE"></div></div></div>
+      <div class="meter"><span class="lbl">Health</span><div class="track"><div class="fill h" id="mH"></div></div></div>
+      <div class="rowhead"><span class="lbl">Brain, live · senses → neurons → actions</span></div>
+      <canvas id="brain"></canvas>
+      <div class="rowhead"><span class="lbl">Inherited body</span></div>
+      <div class="meter diet"><span class="lbl">Diet</span><div class="track"><div class="pin" id="gDiet"></div></div></div>
+      <div class="meter"><span class="lbl">Size</span><div class="track"><div class="fill" id="gSize"></div></div></div>
+      <div class="meter"><span class="lbl">Speed</span><div class="track"><div class="fill" id="gSpeed"></div></div></div>
+      <div class="meter"><span class="lbl">Sight</span><div class="track"><div class="fill" id="gRange"></div></div></div>
+      <div class="meter"><span class="lbl">Mutability</span><div class="track"><div class="fill" id="gMut"></div></div></div>
+    </div>
+  </aside>
+
+  <section id="stream" class="panel">
+    <div class="rowhead"><span class="lbl">Lineages over time</span><span class="lbl" id="strN"></span></div>
+    <canvas id="streamc"></canvas>
+  </section>
+  <div id="mini" class="panel"><canvas id="minic"></canvas></div>
+
+  <div id="hint">drag to pan · scroll to zoom · click a creature to read its mind</div>
+  <nav id="bar" class="panel" aria-label="Controls">
+    <div class="grp">
+      <button class="tb" id="bPause" aria-pressed="false">Pause</button>
+      <button class="tb sp" data-s="1" aria-pressed="true">1×</button>
+      <button class="tb sp" data-s="4" aria-pressed="false">4×</button>
+      <button class="tb sp" data-s="16" aria-pressed="false">16×</button>
+    </div>
+    <div class="grp">
+      <button class="tb tool" data-t="observe" aria-pressed="true">Observe</button>
+      <button class="tb tool" data-t="feed" aria-pressed="false">Feed</button>
+      <button class="tb tool" data-t="mutate" aria-pressed="false">Irradiate</button>
+      <button class="tb tool danger" data-t="smite" aria-pressed="false">Smite</button>
+    </div>
+    <div class="grp">
+      <button class="tb" id="bAuto" aria-pressed="true" title="Camera follows the most interesting creature">Director</button>
+    </div>
+    <div class="grp">
+      <label class="sl"><span class="lbl">Sunlight</span><input id="abund" type="range" min="0.8" max="4.5" step="0.1" value="3.4"></label>
+      <label class="sl"><span class="lbl">Mutation</span><input id="mut" type="range" min="0.2" max="3" step="0.1" value="1"></label>
+    </div>
+    <div class="grp">
+      <button class="tb" id="bSoup" title="Restart from random brains and watch behaviour evolve from nothing">Restart from soup</button>
+    </div>
+  </nav>
+
+  <div id="intro">
+    <div class="introbox">
+      <span class="lbl">An artificial-life experiment · running live in your browser</span>
+      <h2>Primord<i>ia</i></h2>
+      <p>Every creature in this water steers itself with its own neural network. Nobody programmed them to graze, hunt or flee. They inherited it, one mutation at a time.</p>
+      <div class="cta">
+        <button class="go" id="enter">Enter the water</button>
+        <button id="enterSoup">Start from random brains</button>
+      </div>
+      <p class="fine" id="fine">566 synaptic weights per brain · 12 body genes · no fitness function, only energy, hunger and teeth</p>
+    </div>
+  </div>
+</div>
+<script>
+/* PRIMORDIA — simulation core. No DOM. Runs in the browser and in Node (for headless evolution). */
+(function (root) {
+'use strict';
+const NS = 5, NCH = 5, NX = 9, NI = NS * NCH + NX, NH = 14, NO = 6;
+const NW = NI * NH + (NH + 1) * NO, NG = 12;
+const W = 3840, H = 2560, CELL = 128, GC = W / CELL | 0, GR = H / CELL | 0, HW = W / 2, HH = H / 2;
+const TAU = Math.PI * 2;
+const G = { SIZE: 0, HUE: 1, DIET: 2, RANGE: 3, FOV: 4, SPEED: 5, REPRO: 6, INVEST: 7, MUT: 8, OSC: 9, TAIL: 10, FIN: 11 };
+const SPECIES_TH = 0.2;
+
+function rng(seed) { let a = seed >>> 0; return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+function hueDist(a, b) { let d = Math.abs(a - b); return d > 0.5 ? 1 - d : d; }
+function bodyDist(a, b) {
+  let s = 0, d;
+  d = a[G.SIZE] - b[G.SIZE]; s += d * d; d = a[G.DIET] - b[G.DIET]; s += d * d * 1.5;
+  d = a[G.RANGE] - b[G.RANGE]; s += d * d * 0.6; d = a[G.FOV] - b[G.FOV]; s += d * d * 0.6;
+  d = a[G.SPEED] - b[G.SPEED]; s += d * d; d = hueDist(a[G.HUE], b[G.HUE]); s += d * d * 9;
+  return Math.sqrt(s);
+}
+
+const GEN_A = ['Lum', 'Vor', 'Nyx', 'Aur', 'Cry', 'Phos', 'Thal', 'Zeph', 'Umbr', 'Kor', 'Myx', 'Stel', 'Pel', 'Rha', 'Ign', 'Cyan', 'Ser', 'Oph', 'Hyal', 'Tene', 'Noct', 'Vel', 'Xan', 'Brac'];
+const GEN_B = ['ara', 'ion', 'ella', 'opsis', 'ina', 'odon', 'ura', 'ix', 'yra', 'oma', 'idium', 'aspis', 'onia', 'ax', 'ora', 'ula'];
+const EP_CARN = ['vorax', 'ferox', 'rapax', 'cruentus', 'mordax', 'saevus'];
+const EP_HERB = ['placidus', 'pascens', 'mitis', 'viridis', 'lentus'];
+const EP_BIG = ['gigas', 'magnus', 'robustus', 'titanus'];
+const EP_SMALL = ['minimus', 'pusillus', 'nanus', 'exiguus'];
+const EP_FAST = ['velox', 'celer', 'fugax', 'volans'];
+const EP_EYE = ['oculatus', 'vigilans', 'speculator'];
+const EP_ANY = ['lucens', 'errans', 'novus', 'mirabilis', 'obscurus', 'profundus', 'fulgens', 'vagans', 'arcanus', 'primus', 'solitarius', 'gregarius'];
+
+class Sim {
+  constructor(o) {
+    o = o || {};
+    this.W = W; this.H = H;
+    this.rand = rng(o.seed || 20261117);
+    this.P = Object.assign({ plantRate: 2.6, maxPlants: 2000, mutScale: 1, maxPop: 420, minPop: 30 }, o.params || {});
+    this.tick = 0; this.cr = []; this.food = []; this.nPlants = 0;
+    this.species = new Map(); this.living = [];
+    this.events = []; this.fx = []; this.history = []; this.fossils = [];
+    this.nid = 1; this.nsp = 1; this.acc = 0; this.newborn = [];
+    this.cHead = new Int32Array(GC * GR); this.cNext = new Int32Array(2048);
+    this.fHead = new Int32Array(GC * GR); this.fNext = new Int32Array(8192);
+    this.stats = { births: 0, deaths: 0, kills: 0, starved: 0, aged: 0, immigrants: 0, maxGen: 0, oldest: 0 };
+    this.flags = {};
+    this.patches = [];
+    for (let i = 0; i < 7; i++) this.patches.push({ x: this.rand() * W, y: this.rand() * H, vx: (this.rand() - .5) * .12, vy: (this.rand() - .5) * .12, r: 240 + this.rand() * 220 });
+    this._spare = null;
+  }
+  gauss() {
+    if (this._spare !== null) { const v = this._spare; this._spare = null; return v; }
+    let u, v, s; do { u = this.rand() * 2 - 1; v = this.rand() * 2 - 1; s = u * u + v * v; } while (s >= 1 || s === 0);
+    const m = Math.sqrt(-2 * Math.log(s) / s); this._spare = v * m; return u * m;
+  }
+  randomGenome() {
+    const b = new Float32Array(NG), w = new Float32Array(NW);
+    for (let i = 0; i < NG; i++) b[i] = this.rand();
+    b[G.DIET] = this.rand() * 0.45; b[G.SIZE] = 0.15 + this.rand() * 0.5;
+    for (let i = 0; i < NW; i++) w[i] = this.gauss() * 0.7;
+    return { b, w };
+  }
+  mutate(g, scale) {
+    const b = new Float32Array(g.b), w = new Float32Array(g.w), R = this.rand;
+    scale = (scale || 1) * this.P.mutScale;
+    const rate = (0.008 + 0.09 * g.b[G.MUT]) * scale;
+    for (let i = 0; i < NW; i++) if (R() < rate) {
+      let v = R() < 0.04 ? this.gauss() : w[i] + this.gauss() * 0.3;
+      w[i] = v < -4 ? -4 : v > 4 ? 4 : v;
+    }
+    const br = Math.min(0.9, 0.2 * scale);
+    for (let i = 0; i < NG; i++) if (R() < br) {
+      if (i === G.HUE) { let h = b[i] + this.gauss() * 0.016 * Math.min(scale, 4); b[i] = h - Math.floor(h); }
+      else b[i] = clamp(b[i] + this.gauss() * 0.045, 0, 1);
+    }
+    if (R() < 0.005 * Math.min(scale, 4)) this.rewire(b, w);
+    return { b, w };
+  }
+  /* macro-mutation: the food-seeking circuit is rewired between plants and prey */
+  rewire(b, w) {
+    const toCarn = b[G.DIET] < 0.5;
+    for (let h = 0; h < NH; h++) for (let s = 0; s < NS; s++) { const i = h * NI + s * NCH, t = w[i]; w[i] = w[i + 2]; w[i + 2] = t; }
+    b[G.DIET] = clamp(b[G.DIET] + (toCarn ? 0.7 : -0.7), 0, 1);
+    b[G.SIZE] = clamp(b[G.SIZE] + (toCarn ? 0.25 : -0.25), 0, 1);
+    w[NI * NH + 2 * (NH + 1) + NH] = toCarn ? 1.2 : -0.5;
+    this.stats.rewires = (this.stats.rewires || 0) + 1;
+  }
+  /* ---------- species ---------- */
+  nameSpecies(b, parent) {
+    const R = this.rand, pick = a => a[R() * a.length | 0];
+    const cls = b[G.DIET] > 0.6 ? 2 : b[G.DIET] > 0.33 ? 1 : 0;
+    let genus = parent && parent.cls === cls && R() > 0.12 ? parent.genus : pick(GEN_A) + pick(GEN_B);
+    const pools = [EP_ANY];
+    if (cls === 2) pools.push(EP_CARN, EP_CARN); if (cls === 0) pools.push(EP_HERB);
+    if (b[G.SIZE] > 0.68) pools.push(EP_BIG, EP_BIG); if (b[G.SIZE] < 0.2) pools.push(EP_SMALL, EP_SMALL);
+    if (b[G.SPEED] > 0.72) pools.push(EP_FAST); if (b[G.RANGE] > 0.75) pools.push(EP_EYE);
+    let ep = pick(pick(pools));
+    for (let k = 0; k < 6; k++) { let clash = false; for (const s of this.living) if (s.genus === genus && s.ep === ep) clash = true; if (!clash) break; ep = pick(pick(pools)); }
+    return { genus, ep, cls };
+  }
+  newSpecies(b, parent) {
+    const nm = this.nameSpecies(b, parent);
+    const sp = { id: this.nsp++, genus: nm.genus, ep: nm.ep, name: nm.genus + ' ' + nm.ep, cls: nm.cls, hue: b[G.HUE], proto: new Float32Array(b), parent: parent ? parent.id : 0, parentName: parent ? parent.name : null, born: this.tick, count: 0, peak: 0, total: 0, extinct: 0, est: false, kills: 0 };
+    this.species.set(sp.id, sp); this.living.push(sp); return sp;
+  }
+  assignSpecies(c, parent) {
+    const b = c.g.b;
+    if (parent) {
+      if (bodyDist(b, parent.sp.proto) < SPECIES_TH) return parent.sp;
+      let best = null, bd = SPECIES_TH * 0.75;
+      for (const s of this.living) { const d = bodyDist(b, s.proto); if (d < bd) { bd = d; best = s; } }
+      return best || this.newSpecies(b, parent.sp);
+    }
+    let best = null, bd = SPECIES_TH * 0.75;
+    for (const s of this.living) { const d = bodyDist(b, s.proto); if (d < bd) { bd = d; best = s; } }
+    return best || this.newSpecies(b, null);
+  }
+  /* ---------- creatures ---------- */
+  spawn(g, x, y, energy, parent) {
+    const b = g.b, r = 5 + 11 * b[G.SIZE], m = (r / 8) * (r / 8), diet = b[G.DIET];
+    const c = {
+      id: this.nid++, g, x, y, vx: 0, vy: 0, a: this.rand() * TAU, r, m, diet, hue: b[G.HUE],
+      range: 60 + 190 * b[G.RANGE], fov: 0.7 + 2.4 * b[G.FOV], acc: (0.10 + 0.36 * b[G.SPEED]) * Math.pow(r / 8, 0.4), gulp: Math.min(1, m),
+      turn: 0.24 * Math.sqrt(8 / r), maxE: 100 * m, maxH: 20 * m, herb: Math.pow(1 - diet, 1.15), carn: Math.pow(diet, 1.15),
+      reproAt: 0.5 + 0.4 * b[G.REPRO], invest: 0.2 + 0.3 * b[G.INVEST], oscF: 0.02 + 0.2 * b[G.OSC],
+      maxAge: 5000 + 4000 * b[G.SIZE], mature: 150 + 150 * b[G.SIZE],
+      cost0: 0.026 * Math.pow(m, 0.75) + 0.011 * b[G.RANGE] + 0.004 * b[G.FOV] + 0.005, moveCost: 0.05 * m * (0.5 + 1.5 * b[G.SPEED]),
+      e: 0, h: 20 * m, age: 0, cd: 0, rcd: 40, glow: 0, hurt: 0, bit: 0, thrust: 0,
+      gen: parent ? parent.gen + 1 : 0, kids: 0, kills: 0, eaten: 0, dead: false, cause: '',
+      parentId: parent ? parent.id : 0, sp: null, phase: this.rand() * TAU,
+      inp: new Float32Array(NI), hid: new Float32Array(NH), out: new Float32Array(NO), tail: null
+    };
+    c.e = Math.min(c.maxE, energy);
+    c.sp = this.assignSpecies(c, parent);
+    const sp = c.sp; sp.count++; sp.total++; if (sp.count > sp.peak) sp.peak = sp.count;
+    if (!sp.est && sp.count >= 6) { sp.est = true; this.emit(sp.cls === 2 && !this.flags.pred ? 'predator' : 'species', sp); if (sp.cls === 2) this.flags.pred = true; }
+    if (c.gen > this.stats.maxGen) this.stats.maxGen = c.gen;
+    return c;
+  }
+  emit(type, sp, extra) {
+    const e = Object.assign({ type, t: this.tick, sp: sp ? sp.id : 0, name: sp ? sp.name : '', hue: sp ? sp.hue : 0, n: this.cr.length }, extra || {});
+    if (sp) { e.parentName = sp.parentName; e.cls = sp.cls; e.peak = sp.peak; e.life = this.tick - sp.born; }
+    this.events.push(e); if (this.events.length > 60) this.events.shift();
+  }
+  addFx(t, x, y, hue, r) { if (this.fx.length < 300) this.fx.push({ t, x, y, hue, r }); }
+  addPlant(px, py) {
+    if (this.food.length >= 7000) return;
+    const R = this.rand; let x, y;
+    if (px !== undefined) { x = px; y = py; }
+    else if (R() < 0.78) { const p = this.patches[R() * this.patches.length | 0]; const a = R() * TAU, d = Math.sqrt(R()) * p.r * (0.4 + R() * 0.6); x = p.x + Math.cos(a) * d; y = p.y + Math.sin(a) * d; }
+    else { x = R() * W; y = R() * H; }
+    x = ((x % W) + W) % W; y = ((y % H) + H) % H;
+    this.food.push({ x, y, e: 12, t: 0, age: 0, ph: R() * TAU }); this.nPlants++;
+  }
+  init(seeds, n, genBase) {
+    n = n || 130;
+    for (let i = 0; i < n; i++) {
+      const g = seeds && seeds.length ? this.mutate(seeds[i % seeds.length], 0.5) : this.randomGenome();
+      if (seeds && seeds.length) { const k = i % seeds.length, h = g.b[G.DIET] > 0.6 ? 0.96 + (k * 0.031) % 0.12 : 0.08 + (k * 0.6180339) % 0.8; g.b[G.HUE] = h - Math.floor(h); }
+      const c = this.spawn(g, this.rand() * W, this.rand() * H, 1e9, null); c.e = c.maxE * 0.6; c.gen = genBase || 0; this.cr.push(c);
+    }
+    for (let i = 0; i < this.P.maxPlants * 0.7; i++) this.addPlant();
+  }
+  /* ---------- main step ---------- */
+  step() {
+    const P = this.P, cr = this.cr, food = this.food, R = this.rand;
+    const T = ++this.tick;
+    for (const p of this.patches) {
+      p.x = (p.x + p.vx + W) % W; p.y = (p.y + p.vy + H) % H;
+      if (R() < 0.0006) { p.vx = (R() - .5) * .16; p.vy = (R() - .5) * .16; }
+    }
+    this.acc += P.plantRate;
+    while (this.acc >= 1) { this.acc--; if (this.nPlants < P.maxPlants) this.addPlant(); }
+    const fHead = this.fHead, fNext = this.fNext, cHead = this.cHead, cNext = this.cNext;
+    fHead.fill(-1); cHead.fill(-1);
+    for (let i = 0, n = food.length; i < n; i++) { const f = food[i]; const k = ((f.y / CELL) | 0) * GC + ((f.x / CELL) | 0); fNext[i] = fHead[k]; fHead[k] = i; }
+    const n = cr.length;
+    for (let i = 0; i < n; i++) { const c = cr[i]; const k = ((c.y / CELL) | 0) * GC + ((c.x / CELL) | 0); cNext[i] = cHead[k]; cHead[k] = i; }
+    this.newborn.length = 0;
+    for (let i = 0; i < n; i++) { const c = cr[i]; if (!c.dead) this.update(c, T); }
+    // remove dead creatures
+    let w = 0;
+    for (let i = 0; i < cr.length; i++) {
+      const c = cr[i];
+      if (c.dead) { this.onDeath(c); } else cr[w++] = c;
+    }
+    cr.length = w;
+    for (const c of this.newborn) cr.push(c);
+    // food cleanup
+    w = 0;
+    for (let i = 0; i < food.length; i++) {
+      const f = food[i];
+      if (f.t === 1 && ++f.age > 520) f.e = 0;
+      if (f.e > 0) food[w++] = f; else if (f.t === 0) this.nPlants--;
+    }
+    food.length = w;
+    if (cr.length < P.minPop && T % 4 === 0) {
+      const g = this.fossils.length && R() < 0.65 ? this.mutate(this.fossils[R() * this.fossils.length | 0].g, 2) : this.randomGenome();
+      const c = this.spawn(g, R() * W, R() * H, 1e9, null); c.e = c.maxE * 0.6; cr.push(c); this.stats.immigrants++;
+    }
+    if (T % 40 === 0) this.sample();
+  }
+  update(c, T) {
+    const cr = this.cr, food = this.food, inp = c.inp, hid = c.hid, out = c.out;
+    const fHead = this.fHead, fNext = this.fNext, cHead = this.cHead, cNext = this.cNext;
+    inp.fill(0);
+    const range = c.range, r2 = range * range, fov = c.fov, half = fov * 0.5, invF = NS / fov;
+    const cx = (c.x / CELL) | 0, cy = (c.y / CELL) | 0, RR = range > CELL ? 2 : 1;
+    let hit = 0, heard = 0, target = null, tD = 1e9;
+    for (let oy = -RR; oy <= RR; oy++) {
+      let gy = cy + oy; if (gy < 0) gy += GR; else if (gy >= GR) gy -= GR;
+      for (let ox = -RR; ox <= RR; ox++) {
+        let gx = cx + ox; if (gx < 0) gx += GC; else if (gx >= GC) gx -= GC;
+        const cell = gy * GC + gx;
+        for (let j = fHead[cell]; j >= 0; j = fNext[j]) {
+          const f = food[j]; if (f.e <= 0) continue;
+          let dx = f.x - c.x; if (dx > HW) dx -= W; else if (dx < -HW) dx += W;
+          let dy = f.y - c.y; if (dy > HH) dy -= H; else if (dy < -HH) dy += H;
+          const d2 = dx * dx + dy * dy; if (d2 > r2) continue;
+          const d = Math.sqrt(d2);
+          if (d < c.r + 4) {
+            const eff = f.t ? c.carn : c.herb;
+            if (eff > 0.08 && c.e < c.maxE) { c.e += f.e * eff * (f.t ? 1 : c.gulp); f.e = 0; c.eaten++; this.addFx(f.t ? 2 : 1, f.x, f.y, c.hue, 0); continue; }
+          }
+          let a = Math.atan2(dy, dx) - c.a; a -= TAU * Math.round(a / TAU);
+          if (a < -half || a > half) continue;
+          let s = ((a + half) * invF) | 0; if (s >= NS) s = NS - 1;
+          const k = s * NCH + f.t, p = 1 - d / range; if (p > inp[k]) inp[k] = p;
+        }
+        for (let j = cHead[cell]; j >= 0; j = cNext[j]) {
+          const o = cr[j]; if (o === c || o.dead) continue;
+          let dx = o.x - c.x; if (dx > HW) dx -= W; else if (dx < -HW) dx += W;
+          let dy = o.y - c.y; if (dy > HH) dy -= H; else if (dy < -HH) dy += H;
+          const d2 = dx * dx + dy * dy, rr = range + o.r; if (d2 > rr * rr) continue;
+          const d = Math.sqrt(d2), touch = c.r + o.r;
+          if (d < touch) { hit = 1; if (d > 0.01) { const f = (touch - d) / d * 0.3; c.vx -= dx * f; c.vy -= dy * f; } }
+          if (o.glow > 0) { const hh = o.glow * (1 - d / rr); if (hh > heard) heard = hh; }
+          let a = Math.atan2(dy, dx) - c.a; a -= TAU * Math.round(a / TAU);
+          if (d < touch + 6 && a > -0.9 && a < 0.9 && d < tD) { tD = d; target = o; }
+          if (a < -half || a > half) continue;
+          let s = ((a + half) * invF) | 0; if (s >= NS) s = NS - 1;
+          const k = s * NCH + 2; let p = 1 - (d - o.r) / range; if (p > 1) p = 1;
+          if (p > inp[k]) { inp[k] = p; inp[k + 1] = clamp((o.r - c.r) / c.r * 2, -1, 1); inp[k + 2] = 1 - Math.min(1, hueDist(c.hue, o.hue) * 8) * 2; }
+        }
+      }
+    }
+    const B = NS * NCH, sp2 = Math.sqrt(c.vx * c.vx + c.vy * c.vy);
+    inp[B] = c.e / c.maxE; inp[B + 1] = c.h / c.maxH; inp[B + 2] = sp2 / 3; inp[B + 3] = Math.sin(T * c.oscF + c.phase);
+    inp[B + 4] = 1; inp[B + 5] = out[4]; inp[B + 6] = out[5]; inp[B + 7] = hit; inp[B + 8] = heard;
+    const w = c.g.w; let k = 0;
+    for (let h = 0; h < NH; h++) { let s = 0; for (let i = 0; i < NI; i++) s += w[k++] * inp[i]; hid[h] = Math.tanh(s); }
+    for (let o = 0; o < NO; o++) { let s = 0; for (let h = 0; h < NH; h++) s += w[k++] * hid[h]; s += w[k++]; out[o] = Math.tanh(s); }
+    // act
+    c.a += out[0] * c.turn; if (c.a > TAU) c.a -= TAU; else if (c.a < 0) c.a += TAU;
+    const thrust = (out[1] + 1) * 0.5; c.thrust = thrust;
+    c.vx = c.vx * 0.85 + Math.cos(c.a) * c.acc * thrust; c.vy = c.vy * 0.85 + Math.sin(c.a) * c.acc * thrust;
+    c.x += c.vx; c.y += c.vy;
+    if (c.x < 0) c.x += W; else if (c.x >= W) c.x -= W; if (c.y < 0) c.y += H; else if (c.y >= H) c.y -= H;
+    c.glow = out[3] > 0 ? out[3] : 0;
+    c.e -= c.cost0 + c.moveCost * thrust * thrust + c.glow * 0.004;
+    if (c.hurt > 0) c.hurt--; if (c.bit > 0) c.bit--;
+    if (c.cd > 0) c.cd--;
+    else if (out[2] > 0 && target && !target.dead) {
+      c.cd = 10; c.bit = 6;
+      const dmg = (1.5 + 14 * c.diet) * c.m, real = Math.min(dmg, target.h);
+      c.e -= 0.3 * c.m; target.h -= dmg; target.hurt = 8;
+      c.e = Math.min(c.maxE, c.e + real * c.carn * 1.0);
+      this.addFx(3, target.x, target.y, target.hue, target.r);
+      if (target.h <= 0) { target.dead = true; target.cause = 'eaten'; c.kills++; c.sp.kills++; this.stats.kills++; if (c.kills === 8 && (!this.flags.apex || this.tick - this.flags.apex > 9000)) { this.flags.apex = this.tick; this.emit('apex', c.sp, { cid: c.id }); } }
+    }
+    c.age++; c.rcd--;
+    if (c.age > c.maxAge) c.h -= 0.05 * c.m;
+    else if (c.h < c.maxH && c.e > 0.3 * c.maxE) { c.h += 0.03 * c.m; c.e -= 0.03 * c.m; }
+    if (c.dead) return;
+    if (c.e <= 0) { c.dead = true; c.cause = 'starved'; return; }
+    if (c.h <= 0) { c.dead = true; c.cause = c.age > c.maxAge ? 'aged' : 'eaten'; return; }
+    if (c.rcd <= 0 && c.e > c.reproAt * c.maxE && c.age > c.mature && this.cr.length + this.newborn.length < this.P.maxPop) {
+      const give = c.e * c.invest; c.e -= give + 12 * c.m; c.rcd = 80; c.kids++;
+      const a = this.rand() * TAU, kid = this.spawn(this.mutate(c.g, 1), (c.x + Math.cos(a) * c.r * 2 + W) % W, (c.y + Math.sin(a) * c.r * 2 + H) % H, give, c);
+      this.newborn.push(kid); this.stats.births++; this.addFx(4, c.x, c.y, c.hue, c.r);
+    }
+  }
+  onDeath(c) {
+    const st = this.stats, sp = c.sp; st.deaths++;
+    if (c.cause === 'starved') st.starved++; else if (c.cause === 'aged') st.aged++;
+    if (c.age > st.oldest) st.oldest = c.age;
+    sp.count--;
+    if (sp.count <= 0) { sp.extinct = this.tick; const i = this.living.indexOf(sp); if (i >= 0) this.living.splice(i, 1); if (sp.peak >= 12) this.emit('extinct', sp); if (!sp.est) this.species.delete(sp.id); }
+    const total = 12 * c.m + 0.7 * Math.max(0, c.e), k = c.m > 2.2 ? 3 : c.m > 1.1 ? 2 : 1;
+    for (let i = 0; i < k && this.food.length < 7000; i++) this.food.push({ x: (c.x + (this.rand() - .5) * c.r * 2 + W) % W, y: (c.y + (this.rand() - .5) * c.r * 2 + H) % H, e: total / k, t: 1, age: 0, ph: 0 });
+    this.addFx(5, c.x, c.y, c.hue, c.r);
+    if (c.kids >= 2) {
+      const F = this.fossils, score = c.kids + c.kills * 0.5;
+      if (F.length < 40) F.push({ g: c.g, score }); else { let mi = 0; for (let i = 1; i < F.length; i++) if (F[i].score < F[mi].score) mi = i; if (F[mi].score < score || this.rand() < 0.1) F[mi] = { g: c.g, score }; }
+    }
+  }
+  sample() {
+    const cr = this.cr, n = cr.length; let diet = 0, size = 0, carn = 0, speed = 0, range = 0;
+    for (const c of cr) { diet += c.diet; size += c.g.b[G.SIZE]; speed += c.g.b[G.SPEED]; range += c.g.b[G.RANGE]; if (c.diet > 0.6) carn++; }
+    const sp = []; for (const s of this.living) if (s.count > 0) sp.push([s.id, s.count]);
+    const h = { t: this.tick, n, sp, diet: n ? diet / n : 0, size: n ? size / n : 0, speed: n ? speed / n : 0, range: n ? range / n : 0, carn, plants: this.nPlants };
+    const H2 = this.history; H2.push(h); if (H2.length > 360) H2.shift();
+    if (H2.length > 30) {
+      const p = H2[H2.length - 26].n;
+      if (!this.flags.cool || this.tick - this.flags.cool > 2400) {
+        if (p > 50 && n < p * 0.55) { this.flags.cool = this.tick; this.emit('crash', null, { from: p }); }
+        else if (p > 30 && n > p * 1.7) { this.flags.cool = this.tick; this.emit('boom', null, { from: p }); }
+      }
+    }
+    if (n > 60) for (const s of this.living) if (!s.dom && s.count > n * 0.55) { s.dom = true; this.emit('dominance', s, { share: s.count / n }); }
+  }
+  /* ---------- god tools ---------- */
+  feed(x, y) { for (let i = 0; i < 46; i++) { const a = this.rand() * TAU, d = Math.sqrt(this.rand()) * 120; this.addPlant(x + Math.cos(a) * d, y + Math.sin(a) * d); } this.addFx(6, x, y, 0.4, 120); }
+  wdist2(ax, ay, bx, by) { let dx = Math.abs(ax - bx), dy = Math.abs(ay - by); if (dx > HW) dx = W - dx; if (dy > HH) dy = H - dy; return dx * dx + dy * dy; }
+  smite(x, y, r) { let k = 0; for (const c of this.cr) if (!c.dead && this.wdist2(c.x, c.y, x, y) < r * r) { c.h = -1; c.e = Math.min(c.e, 5); k++; } this.addFx(7, x, y, 0.05, r); if (k) this.emit('smite', null, { k }); return k; }
+  mutagen(x, y, r) { let k = 0; for (const c of this.cr) if (!c.dead && this.wdist2(c.x, c.y, x, y) < r * r) { const g = this.mutate(c.g, 6); c.g.w.set(g.w); k++; } this.addFx(8, x, y, 0.8, r); if (k) this.emit('mutagen', null, { k }); return k; }
+  pick(x, y, rad) { let best = null, bd = rad * rad; for (const c of this.cr) { const d = this.wdist2(c.x, c.y, x, y); if (d < bd) { bd = d; best = c; } } return best; }
+  topGenomes(k) {
+    // diverse champions: best per living species by kids+kills, biggest species first
+    const out = [], sps = this.living.slice().sort((a, b) => b.count - a.count);
+    for (let round = 0; out.length < k && round < 6; round++) for (const s of sps) {
+      const mem = this.cr.filter(c => c.sp === s).sort((a, b) => (b.kids + b.kills + b.age / 2000) - (a.kids + a.kills + a.age / 2000));
+      if (mem[round]) out.push(mem[round].g); if (out.length >= k) break;
+    }
+    return out;
+  }
+}
+function encodeGenome(g) {
+  const u = new Uint8Array(NG + NW);
+  for (let i = 0; i < NG; i++) u[i] = Math.round(clamp(g.b[i], 0, 1) * 255);
+  for (let i = 0; i < NW; i++) u[NG + i] = Math.round(clamp(g.w[i], -4, 4) * 31.75 + 127.5);
+  let s = ''; for (let i = 0; i < u.length; i++) s += String.fromCharCode(u[i]);
+  return (typeof btoa !== 'undefined' ? btoa(s) : Buffer.from(u).toString('base64'));
+}
+function decodeGenome(str) {
+  const s = typeof atob !== 'undefined' ? atob(str) : Buffer.from(str, 'base64').toString('binary');
+  const b = new Float32Array(NG), w = new Float32Array(NW);
+  for (let i = 0; i < NG; i++) b[i] = s.charCodeAt(i) / 255;
+  for (let i = 0; i < NW; i++) w[i] = (s.charCodeAt(NG + i) - 127.5) / 31.75;
+  return { b, w };
+}
+const API = { Sim, NS, NCH, NX, NI, NH, NO, NW, NG, W, H, G, hueDist, encodeGenome, decodeGenome };
+if (typeof module !== 'undefined' && module.exports) module.exports = API; else root.PRIM = API;
+})(typeof globalThis !== 'undefined' ? globalThis : this);
+
+</script>
+<script>
+/* evolved headless: 220000 ticks, seed 11 */
+PRIM_SEEDS=["QkQF+1D8WKwAgzPQfZGRbL6Bgoh+kHlWsmGKiJpfi6SLenOgzG5tg2iEeYe5jX9fkq1mjH3VbKGbX2BSZ0VwnW+igF2ZiWGCj5R+UY1Zb1Gpm4J8gox5Va+OZnyehaNjsGafV1mif6qFYJF5om94JIehopdlspGJinp/aYeWrIZiYmNmlMe5laKvgWl5raJmcI+Cg5mCkVWdU5VTT3WxjC2/kmx9YmuJgV9diKalSZuEg6OqhIZtrHRTh2CAjbl8nFzBmnlckFuGfI9wkzygkl6klVSRSo5ncmSOzFhklnN7s7+WkH+PjLOToY55a6dxble1jaech2eAk1FlkoxbbbV0eHKBeX1eYWt2noamim1ze1u4rlSNeYd3yaOphXZ3lHWOu3WMfn2vUqaPnnVma4h9mo2pgoVheUyoaHzZZoCho2Zws49fW2qbgp9SnLJCy393dnurl5uVkHaVXmJgi37UmZZ63YhZW19Ql5Nzao+bhICLa2NvgImIiUN6eJ+QnXleuaSbnVlCWZidm16Ce2J6XIXVdLJooVtgkpGecoOoaHKAXWd6cnV2UEA+p7VVp49+gGZrr4J2yGp0oKSEn2DDS5WTomxmfXtnc3d2jJR/dJdCUUFTtV9UkG9ve2F4sYx8moaFgLWAZ3CKlJuTfIiTO62LZFKCeqCWgWize3R7nptsaL2HeINkmVcmhYGInoqnaWiZlnTCkWNveXS0n4qpileabpeCmIWKZFqoXbaagWeXmKSRt1p9gZBzw3jMi2g=","VzoH9G7aeLQAo1jwgZGRbL6FgnZ+lXlUsluKiJdli6SLenOgymZtg2iEeYe5jX9fkohminrVbKGbVGBSZkVwnW+igF2ZgWGCj5SAUY1Zb1Gpm4J8hox5Va+OZnyehaN1sGafV1mif6qFZ5F5om94NoehopdlspGJinqGaYeWrH5iYmNmg8e5laOtfGl5raJmcI+Cg5OCkVadU5VTT3WxjC2/kmx9ZGuJgV5diKalSZuEg5qqhIZyl3RTh2CAkbl8nFzBmnlckFuGfI93k0Kgkl6klVSRUo5ncmSOzFhklmx7s79/kH+PjLqTro55eadxale1jaech2eAk1Fdko9bbbV0eHKBeYBeYW92poameG1ze024pFSNeYd3y6OxhXZ3lHVgu3WMfIOfUqaPnnVWa4h9mo2pgoVheUyoYHzZZoChlWZws5tfW2qbgp9SnLJCy392dnurl7SfkHaVXmVgm37UmZZ63Y5ZW19QlZNyao9xhICLa2tvgImIiT56eJ+QnX9euaSgnVlCWZidm16Ce2J6XIXVdLJooVZgkpGecoOoW3KAXWd1cnV2UEU+p7VWqod+gGZrr4J2yGp0oKSPn2DDS5WTomxcfXtnc4B2oZR/dJdFTz5TtV9UiG9ve2F4sYx8moaFequAYnCRlJuTh4iTO62NZGR8Z6CWgXmze3N5npVsaL2HeINkmVcmcIGIqYqnaWiZlnTCkWNveXS0n4qlileadpeJmIWKZlqoYraagWeXmK2pq1qRgZBzw23Ki2A=","WVoG5ljmc7M36S/xjJGHecWAkHJfgXlbsluKmaNhmKRkhX6Zyoc3inCDgYe5hX9pkq1ziXXgb6KcX0yJYUV2gW+WglaZgVZzl5B+S45ZhU+im4N8jnN5X7qSXn6efqN1vWCSV2Cif6qFaI59q2qZToemro1qsqaJimGHXYJ/an5pd2N4jb+3kLGrhmx8wI1nRo+Jg4SDkladXYxOT3uyjEK/fGx9cGmJbmZtgKaWSYuEf6OshIJymG9ffGB6iMmNoVzolIRMkFuMiHh3q0igq2CelVSRQY5npWSOz1hxmF97rqiQmH+DhbORo3uKcKxtTle1mqeIeIJxk0tXr5hib6p1gm19j4VXg3d/nn2gcpJve1iso0OTeoeKxqeihYF3mnt5u5VzgYiLUpxDnpFUd4xom4epc4WFgEydYX3ZV4Crh2JwrqdXV2mPhJ1iqak90XR5coC1l5uVkHaWb15Xm37NkZJ63ZhZW19WnYx2dJJ4V4WLa2mWkop2iVV6j6GQooleu7afmllFWYunl16NdVV5bYjXO6topk5fkpeWZHqkW3JxWWRucnV2REFJs7pKqoN+kXF9r5hpw2pcoJaFn1m4WoCVomxtfXBvc4BzlmqBXZhKMzFcsGNkf29ccGt4oYxYmoaFe7OAWGmWjqSah4yVOrGPb1KLep6YenKzZXxvlJt6a8GjeJhkk2skcoGKgoqnbWiglXyimIR4rn9or4q7j2ODfoyLo4V7Zl2obqOce2echKicq359cYVy0H7KkGo=","RkYM94vVYrMDlEP0iJGRbL6GgnZ+kIpWsluKiJpfi6SXenOgwW5ig2iHeYfBjX9fkq1qinrVbJ6bX2BSZ0VwnW+igF2ZgWGCj5R+UY1Zb1Gpm4J8hox5Va+OZnCegKR1sGafV1mif6qFZ5F5om94OYehlp9lspGJiXqGaYeWrH5iYmNmlMe5laKzgWl5raJncI+Cg5OCkVmdU5VTUHWxjC2/kmx9ZGuJgV5diKalSZuEg6OqhHlyo3RTh2CAkbl8nFzBmnlckFuGfI93k0CghV6klVSRUo5rcmSOzFhklmx7s7+WkH+PjLOToY5xa6dxale1jaech2eAk1Fdko9bbbV0eHKBeX1sYWt2noemeG1ze1u4pFSNeYd3xqOxhXZ1lHV5u22MfIOfUqaPnnVWa4h9mpapgoVheUyoYHznZoChiGZcs5tfW2qbgp9SnLJCy392dnurl5uVknaVXmVgm37UmZZ63YhZW19Ql5N2aolxhICLa15vgImIiUN6eJ+QnX9euaSbo1lCWZidjl6CiGJ6XIXVdLJooVtgkpGecoOoW3KAXWd1cnV2UEU+p7VWqoN+gGZrr4J/yGp0oJuEn2DDS5WTomxcfXtnc4B2jJR/dJdFUUFKtV9YeG9ve2F4sYx8moaFgLWAYnCKlJuTh4mTO62LZF6CgaCWgWize5J5nptsaL2HeINkmVcmcIGInoqnaWiZlnHCkWNveXS0n4qfileabpeCmIWKWFqoXbaagWeXmKScq1p9dpBzw3jQi2g=","QEwV8YH/W6kAmVXffZGRbL6FgnZ+kHlWsluKiJdfi6SLenOgym5tg1WEeYe5jX9fkq1minrUbKGbX2BSZ0VwnW+igF2Zi2GCj5SAUY1Zb1Gpm4J8jYx5Va+OZnyehaN1sGafV1mif6qFZ5N5om94NoehopdlspGJinqGaZmWrH5iYmNmlMe5laOtgWl5raJmcI+Cg5iCkVadU5VTT6GxjC3Ckmx9ZGuJgV5diKalSZuEg6OqhIZyo3RLh2CAkbl8nFzBmnlckFuGfI93k0Cgkl6klVSRUo5ncmSOzFhklmx7s79/kI+PjLOToY55a6dxale1jaech2eAk1Fdko9bbbV0eHKBeX1eY292poameG1ze0a4pFSNeYd3xqOxhXZ3lHV5u3WMfIOfUqaPnnVWa4h9mo2piIVheUyoYHzZZoChlWZws5tfW2qbgp9SnLJCy392dnurl7SVkHaVXmVgm37UmZZ63YhZW19Ql5Nyao9xhICLa2tvgIaIiUN6eJ+QnX9euaSbnVlCWZidm16Cd2J6XIXVdLJon1ZgkpGecoOoW3KAXWd7cnV2UEU+p7VWqoN+gGZrr4J2yGp0oKSEo2DDS5WTsGxcfXtnc3d2oZR/dJdFUUFTtV9UiG9ve2F4sYx8moaFgLWAYnCRlJOTh4iTO62LZFKCZ6CWgWizc3x5npVsaL2HeINkmVcmcIGInoqTaWiZlnTCkV5veXS0n4qlileabpeCmIWKZlqoXbaagWeXmKSpq1p9gZBzw3jKi2g=","UzkA91bwa8MArUDdfZGRbL6FgnZ+kHlWsluKiJdfi6SLenOgym5ti2GEeYe5jX9fkq1minrVbKGbX1pSZ0VwnW+igF2ZgVSCj5SAUYdZb1Gpm4J8hox8W6+OZnyehaN1sGafV0+3f6qFZ5F5om94NoehopdlsZGJinKGaYeWrH5iYmNmlMezlaOtgWlvraJmcI+Cg5OCkVadU5VTT3WyjC2/kmx0ZGuJgV5diKalSY+EfqOqhIZynHRTh2CAkbl8nFy3mnlckFuGho93k0CgkF6klVSRWI5ncm2OzFhklmx7s79/kH+PjL6UoaN5a6dxale1jaech2eAk1Fdko9bbbV0eHKBeX1eYW92poameG1ze024pVSNeYd3xqOxgHZ3fnV5u3WMfIOfUqaPnXVWa4h9mo2pgo9heUyoYHzZZoChlWZws5tfaGqbgp9SnLJCy392doqrl7SVkHasWmVgm37UmZZ63YhZW19Ql5NycI9xhIBQa2tvgImIiUN6eJ+QWX9huaSbnVlCWZidm16CbmJ6XIXVdLJooVZgkl+ecoOoW3KAXWd1cnV2Tz9Ip7VWqoN+gGZsr4J2yGp0oKSEn2DDS5WTomxcfXtnc4B2oZR/dJdFUUFTtV9UiG9ve014sYx8moaFgLWKYnCRlJuTh4iTO62LZFKSZ6CWgWqze3x5npVsaL2HgYNkmVcmcIGInoqnZmiZlnzCkWxveXS0n4qlilKagZeCmIWKZlqoXbaTgWeXmKSrq1p9gZBzw3jJi2g=","7F7amy//msE70jbuhpGbWr+ChnhfmcZWcluSX6OZmKR+iXOZyn6Einl7gXe8hZlof6pl1XOJb6E4X5uOYYR1RW+WmVZngWNzlpB9Q5Fda09xqal8iF91hspUpX5eeqNmsHWFWY6lYLNxZ4x5rGqEPYeaZY6uqaZdhoSGbHWWi35zZmJijdKxlbGrhmiKwZR1XJaSfJKDgVacQoxdTXtCjLLMfHh2bGGZXWFuhqaWV46Ejq+shHRvmHZldoR4YcmNxnShlI5skFSjjZN3kkeit2CdlVyRQY5ngGShz1hZmHF7mJN8qH+Yk6qFo3vGcYVsYl21jbGImIJ1k6NQQ41odclwf2t6j31adpd/fXuoa5J9kUSso1R1f4eDyaKCb7Fvob55fpWkk22BXHqLnpxqd55oiIepgoWFj1idYX3fn4Z6gmKnrntVWoKba51llKmc4IqAc45nkaF7lIeVdmVXkI/UcZJ6bZjdXV+MnVl2YHR8k4CLamlxkph2iUVteHyKopSpuVCbXVlQY32bjV6TaVWIbHnWRJhosj1vkq+gdZGiXHKAc1tQboFBRGBYp6NKwYN+fWeDpodquWRar5+hn1m4WoOboHtrboJvU4Rzlm6YXYFDM5lcMWNSb3J7d2t4uYhYl4mLe46KZ2mFjqOah4iVO7F7b1KNiJ6rZ2i1a3teiJtza8GXeJhkmGIksIGtqYynYaafkXqWj3BwooRovYS+g2iQfpWEo4V7alOobr+agWeciKicq4B9i4Ry0FTgjX0=","/mHX4OXwVZmPlSEytfFxetk8p66WbYAhTu1tX2qWpcOqhpx5mz+JPMOgin/VamVGmJuz3Xqpm79eM+GKhGdjlWNEkYNme3OzkKScGJ+it3RfX5idf1yBhWtLgZMrbZfARrB9sWuGNqmhY1SLamycR29zlSiYnD0/aXOohoNXbWR7b2Sdt5zSa2mUQzWFZmJuV1fHOXNsnZ6kgH1rSaRUUqxbaqddfXibfq7ZWL5w68ONpz+VtHpph1J9lIl3gaKeVm+Vtr5RT2yge29TX9Rpp4Q6kDq0c3dNm6yUsYM5hoeJuIpfhL23e2OB3YJxhph7dKS4j5yj/8avhJiMPbuTdlZRnZWdJoCrhmZNqm2rkWecc2l+i0xXdqlwj5pPbHRfXq2EamiHgj9fTp7VkHRdyndrPrXKhnJOmW+hjX5hjK29oqdt/5hiLE26aqpriLyjc6mgbGyogHO7h6mJVG2eTaOCT0xNWaXTU1OExytVoHqVP42lWEWWmptlTSuMZ7Obq1SOVXmQVZMBi4SjkkhrrkF4T5F7mjCvtkh3ouNMbKg1g6JkKYqHc4Nnc7F5oYyMg4tCg3KPmoBEhaN8bbNVn0lhWriNw6R6gppiPHmEnYjMlIqOVeBuiHN31YG2qoVnsz97eNVBTZNUl4iNn5dRvHeLkeusqF2Fc3hSWHPUUGaMb5CIdOGLe3tob5cudVHDe4R/ptdIkIozdI+Ark9yh9fClJSGs2N9mnRbWYeEb22ZdHt2Ub1ka6h5NJBRvzasnbE=","OEcAyHf/VJgAmEfffZGRbL6FgnZ+kHlWsluKiJdfi6SLenOgym5tg1iEeYe5jX9fkq1minrUbKGbX2BSZ0VwnW+igF2ZgWGCj5SAUY1Zb1Gpm4J8hox5Va+OZnyehaN1sGafV1mif6qHZ5F5om94NoehopdlspGJgXqGaWiWrH5iYmNmlMe5laOtgWl5raJmcI+Cg5SCkVadU5VTT3WxjC2/kmx9ZGWJgV5diKalSayEg6OqhIZyo3RTh2CAkbl8nFzBmnlckFuGfI93k0Cgkl2klVSRUo5ncmSOzFhklmx7s79/kI+Pe7OToY55a6dxale1jaech2eAk1Fdk49bbbV0eHKIeX1eYW92poameG1ze024pFSNeYd3xqOxoXZ3lHV5u3WMfHmfUqaPnnVWa4Z9mo2wgoVheUyoYHzZZoChlWZws5taVGqbgp9SnLJCy392dnuwl7SVkHaVXmVgm37UmZZ63YhZW19Ql5Nyao9xhICLa2tzgI2IiUN6eJ+QnXheuaSbnVlCWZidm16Cd2J6XIXVdLJooVZgkpGecoOoW3KAXWd7cnV2UEU+p7VWqoN+gGZrr4J2yGp0oKSEo2DDS5WTsGxcfXtnc3d2qpR/dJdFUUFTtV9UiG9vgWF4sYx8moaFgLWAYnCRlJuTh3OTO62LZFKCZ7mWgWizc3x5npVsaL2HeJdkmVcmcIGInoqnaWiZlnS9kWNveXS0n4qlileabpeCmIWKZlqoXbaagWeQmKSpq1p9gZBzw3jKi2g=","N1AG4l/4VacAnE3jfZGRbL6FgnZ+kHlWsluKiKJfi6SLemigym5tg1iEeYe5jX9fkq1mfXrUbKGbX2BSZ0VwnW+igF2ZgWGCj5SAUY1Zb1Gpm4J8hox5Va+OZnyehaN1sGafV1mif6qFZ5F5om94NoehopdlspF9inqGaWiWrH5iYmNmlMe5laOtgWl5raJmcI+Cg5OCkVadU5VTT3WxjC2/kmx9ZGuJgV5diKalQ5uEg5CqhIZyo3RTh2CAkbl8nFzBmnlckFuGfI93k0Cgkl6klVSRUo5ncmSOzFhklmx7s79/kI+PjLOToY55a6dxale1jaech2eAk1Fdko5bbbV0eHKBeX1eYW92poameG1ze024pFSNeYd3xqOxhXZ3lHV5u3WMfIOfUqaPnnVWa4h9mo2pgoVheUyoYHzZZoChlWZws5tfW2qbgp9SnLJCy392dnurl7SVn3aVXmVgm37UmZB63YhZZl9Ql5Nyao9xhICLa2tvgIaIiUN6eJSQnX9euaSbnVlJWZidm16Cd2J6XIXVdLJooVZgkpGecoOoW3KAXWd7cnV2UEU+p7VWqoB+i2Zrr4J2yGF0oKSEo2DDS5WTsGxcfXtnc3d2oZR/dIlFUUFTtV9UiG9ve2F4sYx8joaFgLWAYnCRlJuTh4iTO62LZFKCZ6CWgGizc3x5npVsaL2HeINkmVcmcIGInoqnaWiZlnTCkWNveXS0n4O1ileaXpd4mIWKZlqoXbaagWeXmKSpq1p9gZBzw3jKi2g=","gEKh9Vr/a5ILoj3pkZF9bL52goZ+kLJWeVuKX5qIi6Rgeougym5tg2iEeYe5jZJff61Z1XmKbJVgX5tSZ51wRWyimV2AgWGCj5SBUY1Zb1GCm6lthlV5m6yOnnxmhaNms3WfV3+iWayFYJF5om94NoehZZeWspF6iol/aayWh35iZmNilMeilbmvgWl5n6JmcI+Cg5GCk1adU5VTT3UtjLG/kmR9bGuJXV+BiKalSZuLg6OqhIZ0o3JTh5GAYLl8wVycmnlbkFyGfJN3kTygkl6klVSRUo5njmRyzERsnmR7s5CQv3+PjbOMo46na3lxale1jaech2eAk5JdUY9bdLFteHJ9j4FeYZ52a4amc214e1u4pFSNeYd3xqN2hbF3lLt5dXWMn4N8UrB1no9Za5p9iI2pgoVheUyoYHzZoYBmlWabs3BfW4Kbap9SQrKcy397dnarl5WVkHaVXmVgi5nUfpZ6WZTdTF+Pl1B2aoRxj4CIb15rgImIiUN6eJ+QnX+kuWWbnVlCWZidf16be2KFXHrleqFosmBgkpGecoOoW2eAhmddcnVFSHY+p6pWtYN+WmaAr41qyHZ0oKSFn2DDTZWQrX1mbHtndoB0jJSXdH9FUbVTQWhUb2p/e2F4sYB8moaFgLWAZ3CKlJuTh4iTO62LZFKCeqCWgWi7e3SDnp1faL2HeINkmVcmcIGIpYqnaaaZlnTCkWNveX60n4qlileabpeCmIWKalqoXbaagWeXmKSRq1p9iJBzt3jKi14=","ozrK13DiTZcixFHyjJF9bL52hYV+lbJUf1uKX5eIi6Rzeougym5tg2+TeYe5jZJff5Zm1XqKbKFgVJtSZp1wQW+imV2AgWGCj5SAUY1Zb1Fwm6l8hlV5jK+FnnxmhaNvsHWfZYWdWaqFZ5F5om94NoehZZOispFoiomGaayWh35iZmNdg8ejlbmtgWd5raJmcI+Cg5GCk1adU5hTT3UtjLHPlmR9bGuJXVqBiKalSZuEg5qqhIZ8l3JTh5GAW7l8v1GckXlbkFyGfJN3j0KgkmejlVSRUo5nkWRyzFRslmSEs41/v3+Pj7OMoZmna3lxale1jayLh2eAk5JdUYNbdLVteHJ9enNeYaZ2b4amc3Z4e024pFSNZ4d3xqN2hbF3lLtlg3WMn4N8UqZ1no9Wa5p9iI0ugoVheUyoYHzZoYBmlWabq3BfX4Kbap9WQrKcy397dmWrl7SVkHaVXmVgm5nUfpZ6WYjdW1+TlVB1aoRxj4CLb2trgImIiUN6dZ+QnX+kuV6gnVlCWZ2dgl6be2KFXHrMdKFoslZgkpGecoOcW3KAdWddcmdFUHY+p6VwtYd+a2aAr4JqyHZ0oKSEn2DDS5WTon1cbHtndoBzoZSXdH9FSrVTQV9Ub2+Ie2FssYx8moaFgLWAYnCRlJuTh4iTO62LZFKCZ6CWgW+ze3N5npBsaL2AeINkmVcmcIGIqYqnaaaZlnTCkWNveXS0tIqlileadpeImIWKZlqpYraTgWGXmK2qq1qRgZJzw3jKi2A=","U14my0f5SbkYjC/RfZGIbL6Fc3Zyk3lWslmKiJlfkqR5enOA0XVkg2iEeYe5jYhfkq1minrVbJKbX2BQZ1donW+ihV2ZgWGCj5R+XY9ZdFOzm4J7hox5VbeOZnyehaN1sHCfV1mif6qFcJN/onZ4NoehppdzspGJhnqGaYeWrH5iYm5mlMe5laOtgWl5raJpcI+Cg5OCkVadUpVTT3G2jC2/ko54ZGiJiF5NiKakMpyEg6OqhItyo3RTh2iAkcannFzKl3lci1uGfI93k0CgkmakoFSRUo5ncmSOx09kkGyNs7+VkH+PjLOTo455a6dyale1jaech2B6iFFbko9bbbV6eHKBeX5eYWt2npamem1ze1u4pFSKeYeGxqO1hXZ3lHV5u3GDfIOfUqaPnnVTa4h9mpCpgodieUyoaXzZZnehlWZ+qZtZW2qbmJ9SnLpC3IZ2f3erkZuVj3aVXk5tm37Up5Z73YVvW2Bbl4V2ao9xhIBna2ZvgImIiUN6eJ+QnX9euaSbollCVJ6dm15/e196XIXUdLJooVtvgJGecoOoYXKAXWd1cnV2RkU+p7VRqoOBhWZrrIJ0xmp0oJaEn2DDS5WTomxcfXtnc4CDoZR/dJBdUUFTtWZfeG9ve2t4sYlimoaOgbKAYnB6lJuTh4iTO66JZE6CenKWgWiqe3x5jZtOaL2WeINYmV8mcIGInoqnaWiZlnzCkWNvb3S0n4qjimOaboyCmIWKYlqhVraagWqblrWNplqGgZBzw429i2g=","2GHX4OXwVZmPlSEytfFxetk8p66WbYAhTu1kX2qWpcOqhpx5m0OJPMOgin/Vf15Gj5uz3Xqpm79eM+GKhGdjlWNEkYNme3OzkKScGJ+it3RfX5idf1yBhWtLgZMrbZfARrB9sWuGNqmhY1SLamycR2dzlSiYnD0/aW2ohoNXbWR7b2Sdt5zSa2mUQzWFZmJuV1fHOXNsnZ6kgH1rSaRUUqxXaqddfXibfq7ZWL5w68ONpz+VtHpph1J9lIl3gaKeVm+Vtr5RT2yge29TX9Rpp4Q6kDq0c1JNn6yUsYM5hoeJuIpfkb23e2OB3YJxhph7dKS4j5yj/8avhJiML7uTdlZRnZWdJoCrhmZNqm2rkWecc2l+i0xXdqpwj5pPbHRfXq2EamiHgj9fTp7VkHRdyndrPrXKhnJOmW+hjX5hjK27oqdt/5hiLE26aqpriLyjc6mebGyogHO7h6mJVG2eTaOCT0xNWaXZU1OExytJoHqVP42lWEWWmptlTSmMZ7Obq1SOVXmQVZMBi4SokkhrrkF4T5F7mjCvtkh3mONMbKg1g6JkKYqHc4Nnc7F5oYyMg4tCg3KPmoBEhaN8bbNVn0lhWriNw6SIgppiPHmEnYjMlIqOVeBuiHN31YG2qoVnsz97eNVBTZNDl4iNn5dRvGqLkeusqF2Fc3hSWHPdUGaMb5CIdOGLe3tob5cuf1HDe4R/ptdIkIozdI+Ark9yh9fClJSGs2N9mnRbWYeEb22ZdHt2Ub1ka6h5NJBRyDasnbE=","Q0AS/If/Vn8AoHH4fZGRbL6GgnZ+kHlWsluKiJpfi6SLb3Ogym5tg2iEeYe5jX9fkq1mjH3RY6GbX2BSZ0VwnW+igF2ZgWGHj5SBUY1Zb1Gpon18jo55Va+QYXyehaN1sGafYFmif6qFYJF5om94Noeho5dpspGJinp/aYGWrIJiYmBflMe5laKvgWN5radmcI+Cg5OCkVadU5VTT3WxjC2/kmx9ZGuJgV9diKalSZuEiKOqhHxyqHRTh2CAkbl8nFzOmnhckluGfI93kzygkmaklVSRUo5rcmSSzFhklmx0rb+WkH+Pi7ORoY55a7Bxale1jaegh2eEk1Fdko9bbbV0c3KBeX1eYWt2noameG1ze1HKrlCNcIdyxqOphXZ3lHWEu3WMfIOvUqaPnndWa5WBmo2pgoVgeUuoU3zZZoChlWZws5lfW2qbgp9SnKpCy392dnurl7WVkHaVXmVHi37UmZZ63YhZW19Ql5N2ao9xhICLa16LgImIiUN6eJ+QnX9auaSmnVlCWZSdm16Ce2J6XIXVdLJooVtgjZGeaoeoW3KAXWd1cnV2UEU+p7VWqoN+gGZrr3h2wGp0o6SEn2DDTJWHomxmfXtnc4B2jJR/dJdCUUFUtV9UeG9ve2F4sYx8jYaHgLV+Z2iKlJuTh4iTO62LcFKCeqCWgWize3R5nptsaL2HeINkmVcmcIGInoqnaWiZlnTCkWVieXS0n3KlilmabpeDkoWKZFqRW7aRgWeXmKSRq0t5gZBzw3jKi2g=","SEQA/2L9TmAAikX1fZGRbL6Ggnp+kHlWsluKiJpfi6SLenOgym5yg2iEeYe6h39fkq1mjH3RY6GbX2BSZ1J0nW+igF2ZgWGCj5SBUY1Zb1Gpm4N8jox5Va+YZnyegaN1sGafYFmlf6qFYJF5om94Noeho5dpspGJinp/aYeWrIJiYntflMe5laKvgWN5radmcI+Cg5OCkVadU59TT3WxjC2/m2x9ZGuJgV9diKalSZuEiKOqhIZyo3RTh2CAkbl8nFzNmnhckGaGfI93kzygkl6klVSRUo5ncmSSzFhklmx7s7+WkH+Pi7ORoY55a7BxN1e1jaegh2eEk1Fdko9bbbl0c3KBeX1eYWt2noameG1ze1u4rlSNeYd3xqOphXZ3lHV5u3WMfIOvUqaPnndWa4h9mo2pgoVgeUyoU3zZZoChjmZws5tfW2qbgp9SnLJCy392dnurl5uVkHaVXmVHi37UmZZ63YhZW19Ql5N2ao9xhICLa15vgImIiUN6eJ+QnYJaubqmnVlCWZidm16Ce2J6XIXVdLJooVtgkpGeaoeoW3KAXWd+cnV2UEU+p7VWqoN+gGZrr3h2yGp4oKSEn2DDTJWTomxmfXtmc4B2jJR/dJdCUUFUtV9UeG9ve2F4sYx8jYaFgLV+Z3CKlJuTh4iTO62LZFKCeqCWgWize3R5nptsaL1zeIxkmVcmcIGInoqnaWiZlnTCkWNveXS0n4qlileabpeDmIWKZFqRXbaagWeXmKaRq0t9gZBzw3jKi2g=","TToH9GrleLQAo1jwgZGRbL6FgnZ+lXlUsluKiJdfi6SLemOgymZtg2iEeYe5jX9fkpZminrVbKGbVGBSZkVwnG+igF2ZgWGCj5SAUY1Zb1Gpm4J8hox5Va+OZnyehaN1sGafV1mif6qFZ5F5om94NoehopdlspGJinqGaYeWrH5iYmNmg8e5laOtgWl5raJmcI+Cg5OCkVadU5VTT3WxjC2/kmx9ZGuJgV5diKalSZuEg5qqhIZyl3RTh2CAkbl8nFzBmnlckFuGfI93k0Kgkl6klVSRUo5ncmSOzFhklmx7s79/kH+PjLqTro55a6dxale1jaech2eAk1Fdko9bbbV0eHKBeYBeYW92poameG1zj024pFSNeYd3yaOxhXZ3lHVgu3WMfIOfUqaPnnVWa4h9mo2pgoVheUyoYHzZZoChlWZws5tfW2qbgp9SnLJCy392dnurl7SVkHaVXmVgm37UmZZ63Y5ZW19QlZNyao9xhICLa2tvgImIiT56eJ+QnX9euaSgnVlCWZidm16Ce2J6XIXVdLJooVZgkpGecoOoW3KAXWd1cnV2UEU+p7VWqod+gGZrr4J2yGptoKSPn2DDS5WTomxcfXtnc4B2oZR/dJdFTz5TtV9UiG9viWF4sYx8moaFerWAYnCRlJuTh4iTO62LZFJ8Z6CWgXmze3N5npVsaL2HeINkmVcmcIGIqYqnaWiZlnTCkWNveXS0n4qlileadpeJmIWKZlqoYraagWeXmK2pq1qRgZBzw23Ki2A=","YV0LyE7vebM36S/xjJGHecWAkHJwiXlbqFuKmaNhmKRke36Zyoc3inCDgYe5h39pkq1ziXXgb6KbX0yJYkWEgW+WglaZgWFzl5B+SI5ZhU+im4N8lnN1X7qSXn6efqN1vWCSV2CieLeFaIx9omqZToemro1qsqaJimGHXYJ/an5pdGN4jb+4kLGrhmx8wI1nRo+Jg4SDkladaIxOT3uyjEK/fGx9cGmIbmZtf6aWSYuAf6OshHJyl21ffGB6iMmNoVzRlIRMkFuMiHh1q0egq2CelVSNQZxnpWSOz1hxmF97rqiKmH+DfrORo3uKcKZtTle1mqeIfYJxk0tEv5hib6l6gm19j4VXg2t/nn2heKBve1iso0OTeoeKxqeihXt3noN5u5VzgYiLUpyOnpFUd4xom4epZ4WFgEydYY7ZV4Cfh2JwrqdXV2mbhJ1iqak90XR5coC1l5uVj3aWdGpXm37Nj5J63ZhZW19WnYx2dI+OV4WLa2mWkpB2iVV6j6CWooleubafkVlFWW2nkl6GdVV5Y5jXR6topk5fkY2WZHqkW3JxWWRucnV2REFJs7pKqn2CkXR9r5huw2paoJaFn1m4WoCVomxtfXBvc4BzlmqBXZhKMzFcsGNkf29ccGt4oYxYmoaFe7OAWGmcjqSah4yVOrGPb1KLep6YenKzZXxvlJt6a8GjeIlkk2IkcoGFgoqnbWiZgXyimIR4rohor4q7j2ODfoyLo4V7aHaobqOce2echKicq359cYxy0H7DkGc=","RkYM9YHRYrMDlEP0iJGRbL6GgnZ+kIpWsluKiJpfi6SXenOgwW5ig2iHeYfBjX9fkq1qinrVbJ6bZGBSZ0VwnW+igF2ZgWGCj5R+UY1Zb1Gpm4J8hox5Va+OZnCegKR1sGafV1mif6qFZ5F5om94OYehlp9lspGJiXqGaYeWrH5iYmNmlMe5laKzgWl5raJncI+Cg5OCkVmdU5VTUHWxjC2/kmN9ZGuJgV5diKalSZuEg6OqhHlyo3RTh2CAkbl8nFzBmnlckFuGfI93k0CghV6klVSRUo5rcmSOzFhklmx7s7+WkH+PjLOToY5xa6dxale1jaech2eAk1Fdko9bbbV0eHKBeX1sYWt2noezeG1ze1u4pFSNeYd3xqOxhXZ1lHV5u22MfIOfUqaPnnVWa4h9mpapgoVheUyoYHznZoChiGZcs5tfW2qbgp9SnLJCy392dnurl5uVknaVXmVgm37UmZZu3YhZW19Ql5N2aolxhICLa15vgImIiUN6eJ+QnX9euaSbo1lCWZidjl6CiGJ6XIXVdLJooVtgkpGecoOoW3KAXWd1cnV2UEU+p7VWqoN+gGZrr4J/yGp0oJuEn2DDS5WTomxcfXtnc4B2jJR/dJdFUUFKtV9YeG9ve2F4sYx8moaFgLWAYnCKlJuTh4mTO62LZF6CgaCWgWize5J5nptsaL2HeINkmVcmcIGInoqnaWiZlnHCkWNveXS0n4qfileabpeCmIWKWFqoXbaagWeXmKScolp9dpBzw3fQi2g=","QEwd8ZnyY7EAmE3gfZGRbL6FgnZ+kHlWsluKiJdfi6SLenOgym5tg1WEeYe5jX9fkq1minrUbKGbX2BSZ0VwnW+igF2ZgWGCj5SAUY1Zb1Gpm4J8jYx5Va+OZnyehaN1sGafV1mif6qFZ5N5om94NoehopdlspGJinqGaWiWrH5iYmNmlMe5laOtgWl5rZZmcI+Cg5iCkVadU5VTT6GxjC3Ckmx9ZGuJgV5diKalSZuEg6OqhIZyo3RLh2CAkbl8nFzGmnlckFuGfI93k0Cgkl6klVSRUo5ncmSOzFhklmx7s79/kI+PjLOToY55a6dxale1jaech2eAk1Fdko9bbbV0eHKBeX1eY292poameG1ze0a4pFSNeYd3xqOxhXZ3lHV5u3WMfIOfUqaPnnVWa4h9mo2piIVheUyoYHzZZoChlWZws5tfW2qbgp9SnLJCy392dnurl7SVkHaVXmVgm37UmZZ63YhZW19Ql5Nyao9xhICLa2tvgIaMiUN6eJ+QnX9euaSbnVlCWZidm16Cd2J6XIXVdLJon1ZgkpGecoOoW3KAXWd7cnV2UEU+p7VWqoN+gGZrr4J2yGp0oKSEo2DDS5WTsGxcfXtnc3d2oZR/dJdFUUFTtV9UiG9ve2F4sYx8moaFgLWAYnCRlJuTh4iTO62LZFKCZ6CWgWizc3x5npVsaL2BeINkmVcmcIGInoqnaWiZlnTCkV5veXS0n4qlileabpeCmIWKZlqoXbaagWeEmKSpq1p9gZBzw3jKi2g=","M0cA33f/VK0AmEfffZGRbL6FgnZ+kHlWsluKiJdfi6SLenOgym5tg1iEeYe5jX9fkq1minrUbKGbX2BSZ0VwnW+igF2ZgWGCj5SAUY1Zb1Gpm4J8hox5Va+OZnyehaN1sGafV1mif6qFZ5F5om94NoehopdlspGJinqGaWiWrH5iYmNmlMe5laOtgWl5raJmcI+Cg5SCkVadU5VTT3WxjC2/kmx9ZGuJgV5diKalSZuEg6OqhIZyo3RTh2CAkbl8nFzBmnlckFuGfI93k0Cgkl2klVSRUo5ncmSOzFhklmx7s79/kI+Pe7OToY55a6dxale1jaech2eAk1Fdko9bbbV0eHKIeX1eYW92poameG1ze024pFSNeYd3xqOxhXZ3lHV5u22MfIOfUqaPnnVWa4h9mo2pgoVheUyoYHzZZoChlWZws5tfW2qbgp9SnLJCy392dnuwl7SVkHaVXmVgm37UmZZ63YhZW19Ql5Nyao9xhICLa2tzgI2IiUN6eJ+QnXheuaSbnVlCWZidm16Cd2J6XIXVcbJooVZgkpGecoOoW3KAXWd7cnV2UEU+p7VWqoN+gGZrr4J2yGp0oKSEo2DDS5WTsGxcfXtnc3d2qpR/dJdFUUFTtV9UiG9vgWF4sYx8moaFgLWAYnCRlJuTh4iTO62LZFKCZ6CWgWizc3x5npVsaLuHeINkmVcmcIGInoqnaWiZlnS9kWNveXS0n4qlileabpeCmIWKZlqoXbaagWeQmKSpq1p9gZBzw3jKi2g=","7F7api//lcM73jbzhpGbWr+ChnhfmcZWcluSX6OZmKR+iXOZyn6Einl7gXe8hZlof6pl1XOJb6E4X5uOYYR1RW+WmVZngVxzlpB9Q5Fda09xqal8iF91hspUpX5YeqNmsHWFWX+lYKpxZ4x5rGqEPYeaZY6uqaZdhoSGbHWWi35zZmJijdKxlbGrhmiKwZR1XJaSfJKDgVaZQ4xdTZBCjLLMfHh2bGGZXWFuhqaWV46Ejq+0hHRvmHZldoR4YcmNxlyhlI5skFSijZN3kkeit2CdlVyRQY5ngGShz1hZmHx7mJN8qH+Yk6qFo3vGcYVsYl21jbGImIJ1k6NQQ5xodclwf2t6j31adpd/fXuoa5J9kUSso1R1f4eDyaKCb7Fvob55fpWkk4eBXHqLnpxqd55ohYepgoWFj1idYX3fn4Z6gmKnrntVWoKba51llKmc4IqAc45nkaF7lIeVcGVXkI/UcZJ6bZjdXV+MnVl2YHR8k4CLdWlxkph2iUVteH2Kop2puV2cXVlQY32bjV6SaVWIbHnWRJhoqz1vkq+gdZGiXHKAc1tQboFBRG9Yp6NKwYN+fWeDpodqwWlar5+hn1m4WoOboHtrboJvU4Rzlm6YXYFDM5lcN2NSb3J7d2t4uZBYl5aLe46KZ2mFjqOah4iVO7F7b1KNiJ6rZ2i1bntegZtza8GXeJhkkGIksJitqYynYaafkX6Wj3BwooRovYS+g2iQfp+Eo4V7hFOobr+agWeciKicq4B9i4Rs0FngjX0=","/mHU7N3wVaiPkBwytfFxetk2p66WbYAyTtxtX2qWpL6qhpxSm0mJPLCgin/JbmpGmJuz3Xqpmr9eM+qLgmdjlWBEkYNme3Otjq2cGJ+it3RfX5idf1yBhWRLgaQrbZfARY99pmuGLKmhZVSbanGcR29zlSiYnD0/aXO6hoNXbFxne2Sdt5zSdVyUQTWFZm1uV1fHrHNVnZqkkX1lTKZUUqxfaqdneHibfq7RWr5w68ONpz+TtG+Bh0d9lIl/gaKTXG+VvL5RT2yge29XY9RpqYQ6kDq0Z3dNm6yUlYM4hoeJuIpfi723e2OB1IJxhpp7dJ60j5ma/8avhI6MPbuTdlRXnZWdJoCrhmZNqm2rkWecc2l+eUxSpqRwjbtPbHRfXq2DamiHgkxfTp7VkHRcyndrTbXKhnJOmW+hjYNhna3Toqdt/5hiLEu6cLNziLyjcKmgdGyngHO2fKmJSW2eTaOCT0dPWaXTU1Ocxy1Vq3qVP42lWEWWmpJoTSuMZ7Obq1SOYnmQ3pMBi4Wjkkhrv0F4T5F7mjCvtkh1muJNbKg1g6tkIYqHbYNnc7F5ooyTiIA9iXKPmoBEhaOIbaxVn0BhWsKbubF6gppRS3mEnYi+lIqJSuBuiHN3zIG2qYVnsz97g9VBQ5NUl5CNqpdKvHyLkeusqF2Fc3hTXnPUUWaHb5CIdOGRe3toZ5cudVHJe4SLptdIkIoje4+Ark9yh9e0lJSGs2N9mXRmbIhub22ZcXtwUb1ra6h5NJBRvzaso6Q=","OEcAyI3+VJgAmEfgfZGRbL6FgnZ+kHlWsluKiJdfi6SLenOgym5tg1iEeYeijX9fkq1minrUbKGbX2BSZ0VwnW+igF2ZgWGCj5SAUY1Zb1Gpm4J8hox5Va+OZnyehaN1sGafV1mif6qHZ5F5om94NoehopdlspGJgXqGaWiWrH5iYmNmlMe5laOtgWl5raJmcI+Cg5SCkVadU5VTT3WxjC2/kmx9ZGWJgV5diKalSayEg6OqhIZyo3RTh2CAkbl8nFzBmnlckFuGfI93k0Cgkl2klVSRUo5ncmSOzFhklmx7s79/kI+Pe7ONoY55a6dxale1jaech2eAk1Fdk49bbbV0eHKIeX1eYW92poameG1ze024pFSNeYd3xqOxoXZ3lHV5u3WMfHmfUqaPnnVWa4Z9mo2wgoVheUyoYHzZZoChlWZws5taVGqbgp9SnLJCy392dnuwl7SVkHaVXmVgm37UmZZ63YhZW19Ql5Nyao9xhICLa2tzgI2IiUN6eJ+QnXheuaSbnVlCWZidm16Cd2J6XIXVdLJooVZgkpGecoOoW3KAXWd7cnV2UEU+p7VWqoN+gGZrr4J2yGp0oKSEo2DDS5WTsGxcfXtnc3d2qpR/dJdFUUFTtV9UiG9vgWF4sYx8moaFgLWAYnCRlJuTh3OTO62LZFKCZ7mWgWizc3x5npVsaL2HeJdkmVcmcIGIp4qnaWiZlna9kWNveXS0n4qlileabpeCmIWKZlqoXbaagWeQmKSpq1p9gZBzw3jKi2g=","N00A4mP4VacAnFfjfZGRbL6FgnZ+kHlWsluKiKJfi6SLemigym5tg1iEeYe5jX9fkq1mfXrUbKGbX2BSZ0VwnW+igF2ZgWGCj5SAUY1Zb1Gpm4J8hox5Va+OZnyehaN1sGafV1mif6qFZ5F5om94NoehopdlspF9inqGaWiWrH5iYmNmlMe5laOtgWl5raJmcI+Cg5OCkVadU5VTT3WxjC2/kmx9ZGuJgV5diKalQ5uEg5CqhIZyo3RTh2CAkbl8nFzBmnlckFuGfI93k0Cgkl6klVSRUo5ncmSOzFhklmx7s79/kI+PjLOToY56a7Fxale1jaech2eAk1Fdko5bbbV0eHKBeX1eYW92poameG1ze024pFSNeYd3xqOxhXZ3lHV5u3WMfIOfUqaPnnVWeIh9mo2pgoVheUyoYHzZZoChlWZws5tfW2qbgp9SnLJCy392dnurl7SVn3aVXmVgm37UmZB63YhZZl9Ql5Nyao9xhICLa2tvgIaIiUN6eJSQnX9euaSbnVlJWZidm16Cd2J6XIXVdLJooVZgkpGecoOoW3KAXWd7cnV2UEU+p7VWqoB+i2Zrr4J2yGF0oKSEo2DDS5WTsGxcfXtnc3d2oZR/dIlFUUFTtV9UiG9ve2F4sYx8joaFgLWAYnCRlJuTh4iTO62LZFKCZ6CWgGizc3x5npVsaL2HeIpkmVcmcIGInoqnaWiZlnTCkWNveXS0n4O1ikCaXpd4mIWKZlqoXbaagWeXmKSpq1p9gZBzw3jKi2g=","Q0cL/3b/cJYBpGnufZGRbL6GgnZ+kHlWslyKiJpfi6uLenOgym5tg2iEeYe5jX9fkq1mjH3RY6GbX2BSZ0VwnW+igF2ZgWGHj5SBUY1Zb1GpooJ8jo55Va+QTHyehaN1sGafYFmif6qFYJF5om94Noeho5dpspGJioZ/aYGWrIJiYmBflMe5laKvgWN5radmcI+Cg5OCkVadU5VTT3WxjC2/kmx9ZGuJgV9diKalSZuEiKOqhIZyqHRTh2CAkbl8nFzOmodckluGfI93kzygkmaklVSRUo5ncmSSzFhklmx7rb+WkH+Pi7ORoY55a7Bxale1jaegh2eEk1Fdko9bbbV0c3KBeX1eYWt2noameG1ze1HKrlSNeYdyvKOphXZ3lHWEu3WMfIOvUqaPnndWa4iBmo2pgoVgeUuoU3zZZoChlWZws5lfW2qbgp9SnLJCy392dnurl7WVkHaVXmVHi37UmZZ63YhZW19Ql5N2ao9xhICLa16LgImIiUN6eJ+QnX9auaSmnVlCWZSdm16Ce2J6XIXVdLJooVtgjZGeaoeoW3KAXWd1cnV2UEU+p7VWqoN+gGZpr3h2yGp0o6SEn2DDTJWHomxmfXtnc4B2jJR/dJdCUUFUtV9UeG9ve2F4sYx7jYaFgLV+Z2iKlJuTh4iTO62LcFKCeqCWgWize3R5nptsaL2HeINkmVcmb4GInoqnaWiZlnTCkWVveXC0n4qlileabpeDmIWKZFuRW7aRgWeXmKGRq0t5gZBzw3jKi2g=","VzoH9G7feLQAo1jwgZGRbL6FgnZ+lXlUsluKiJdfi6SLenOgymZtg2iEeYe5jX9fkohminrVbKGbVGBSZkVwnW+igF2ZgWGCj5SAUY1Zb1Gpm4J8hox5Va+OZnyehaN1sGafV1mif6qFZ5F5om94NoehopdlspGJinqGaYeWrH5iYmNmg8e5laOtgWl5raJmcI+Cg5OCkVadU5VTT3WxjC2/kmx9ZGuJgV5diKalSZuEg5qqhIZyl3RTh2CAkbl8nFzBmnlckFuGfI93k0Kgkl6klVSRUo5ncmSOzFhklmx7s79/kH+PjLqTro55cKdxale1jaech2eAk1Fdko9bbbV0eHKBeYBeYW92poameG1ze024pFSNeYd3y6OxhXZ3lHVgu3WMfIOfUqaPnnVWa4h9mo2pgoVheUyoYHzZZoChlWZws5tfW2qbgp9SnLJCy392dnurl7SVkHaVXmVgm37UmZZ63Y5ZW19QlZNyao9xhICLa2tvgImIiT56eJ+QnX9euaSgnVlCWZidm16Ce2J6XIXVdLJooVZgkpGecoOoW3KAXWd1cnV2UEU+p7VWqod+gGZrr4J2yGp0oKSPn2DDS5WTomxcfXtnc4B2oZR/dJdFTz5TtV9UiG9ve2F4sYx8moaFequAYnCRlJuTh4iTO62LZGR8Z6CWgXmze3N5npVsaL2HeINkmVcmcIGIqYqnaWiZlnTCkWNveXS0n4qlileadpeJmIWKZlqoYraagWeXmK2pq1qRgZBzw23Ki2A=","bVcA4TT/SbkVmi/jfZGIbL6FgnZyk3lWslmKiJlfkqR5enOAynVkg2iEeYe5jYhfkq1minrVbJKbX2BQZ1donW+ihV2ZgWGCj5R+XY9Zb1Ozm4J7hox5VbeOZnyehaN1sHCfV1mif6qFcJN5om94NoehopdzspGJhnqGaYeWrH5iYm5mlMe5laOtgWl5raJpcI+Cg5OCkVadU5VTT3GxjC2/ko54ZGiJiF5NiKakMpyEg6OqhItyo3RTh2iAkcabnFzBl3lci1uGfI93k0CgkmakoFSRUo5ncmSOzE9kkGyNs7+VkH+PjLOTo455a6dyale1jaech2R6iFFbko9bbbV6eHKBeX5eYWt2npamem1ze1u4pFSKeYeGxqO1hXZ3lHV5u3GDfIOfUqaPnnVTa4h9mpCpgodieUyoaXzZZnehlWZwqZtZW2qbmJ9SnLpC3IZ2f3erkZuVj3aVXk5tm37Up5Z73YhvW2Bbl4V2ao9xhIBna2ZvgImIiUN6eJ+QnX9euaSbollCVJ6dm15/e2J6XIXUdLJooVtvgJGecoOoVnKAXWd1cnV2RkU+p7VRqoOBhWZrrIJ0xmp0oJaEn2DDS5WTomxcfXtnc4CDoZR/dJBdUUFTtWZfeG9ve2t4sYlimoaOgbKAYnB6lJuTh4iTO66JZE6CenKWgWiqe3x5nptiaL2WeINYmV8mcIGInoqnaWiZlnzCkWNvb3S0n4qjimOaboyCmIWKYlqhVraagWqXmLWRplqGgZBzw429i2g="];
+
+</script>
+<script>
+/* PRIMORDIA — renderer, camera, HUD, narrator */
+(function () {
+'use strict';
+const { Sim, NS, NCH, NI, NH, NO, W, H, G, decodeGenome } = PRIM;
+const TAU = Math.PI * 2, HW = W / 2, HH = H / 2;
+const $ = id => document.getElementById(id);
+const cv = $('world'), ctx = cv.getContext('2d');
+let vw = 0, vh = 0, dpr = 1, minZ = 0.3, bgGrad = null;
+const cam = { x: W / 2, y: H / 2, z: 0.7, tz: 0.7 };
+let sim = null, sel = null, follow = false, auto = true, nextCut = 0, paused = false, speed = 1, tool = 'observe', selDeadAt = 0;
+let frameN = 0, edges = null, cutKind = 0, entered = false;
+const parts = [], rings = [];
+const seeds = (window.PRIM_SEEDS || []).map(decodeGenome);
+const wx = d => d > HW ? d - W : d < -HW ? d + W : d;
+const wy = d => d > HH ? d - H : d < -HH ? d + H : d;
+const hsl = (h, s, l, a) => a === undefined ? `hsl(${(h * 360) | 0},${s}%,${l}%)` : `hsla(${(h * 360) | 0},${s}%,${l}%,${a})`;
+const fmt = n => Math.round(n).toLocaleString('en-US');
+
+/* ---------- sprites ---------- */
+function mkGlow(h, s, l, size, mid) {
+  const c = document.createElement('canvas'); c.width = c.height = size; const g = c.getContext('2d'), r = size / 2;
+  const gr = g.createRadialGradient(r, r, 0, r, r, r);
+  gr.addColorStop(0, `hsla(${h},${s}%,${Math.min(96, l + 22)}%,1)`); gr.addColorStop(mid, `hsla(${h},${s}%,${l}%,.42)`); gr.addColorStop(1, `hsla(${h},${s}%,${l}%,0)`);
+  g.fillStyle = gr; g.fillRect(0, 0, size, size); return c;
+}
+const GLOW = []; for (let i = 0; i < 36; i++) GLOW.push(mkGlow(i * 10, 95, 60, 64, 0.22));
+const PLANT = mkGlow(150, 85, 55, 32, 0.3), MEAT = mkGlow(350, 95, 64, 32, 0.3), HAZE = mkGlow(168, 70, 42, 128, 0.5);
+const dust = []; for (let i = 0; i < 150; i++) dust.push({ x: Math.random(), y: Math.random(), d: 0.15 + Math.random() * 0.6, s: 0.5 + Math.random() * 1.4, a: 0.12 + Math.random() * 0.3 });
+
+/* ---------- world ---------- */
+function newWorld(evolved) {
+  sim = new Sim({ seed: (Math.random() * 1e9) | 0, params: { plantRate: +$('abund').value, maxPlants: 800 + 460 * +$('abund').value, mutScale: +$('mut').value } });
+  sim.init(evolved && seeds.length ? seeds : null, evolved ? 170 : 140, evolved ? 392 : 0);
+  if (evolved) for (let i = 0; i < 500; i++) sim.step();
+  sim.events.length = 0; sim.fx.length = 0;
+  sel = null; follow = false; parts.length = 0; rings.length = 0; $('notelist').innerHTML = '';
+  note(evolved
+    ? 'The water is already old. These lineages were evolved for 220,000 ticks before you arrived; from here on, nothing is scripted.'
+    : 'Primordial soup. Every brain is random noise. Most will spin and starve; watch for the first one that learns to turn toward food.', 0.11);
+  auto = true; $('bAuto').setAttribute('aria-pressed', 'true'); nextCut = 0; showSpec(false);
+}
+function resize() {
+  dpr = Math.min(window.devicePixelRatio || 1, 2); vw = cv.clientWidth; vh = cv.clientHeight;
+  cv.width = Math.round(vw * dpr); cv.height = Math.round(vh * dpr);
+  minZ = Math.max(vw / W, vh / H) * 1.03; cam.z = Math.max(cam.z, minZ); cam.tz = Math.max(cam.tz, minZ);
+  bgGrad = ctx.createLinearGradient(0, 0, 0, vh); bgGrad.addColorStop(0, '#06101e'); bgGrad.addColorStop(1, '#02040a');
+}
+
+/* ---------- particles ---------- */
+function burst(x, y, hue, n, sp, life, size, sat) {
+  for (let i = 0; i < n && parts.length < 700; i++) { const a = Math.random() * TAU, v = sp * (0.3 + Math.random()); parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life, max: life, hue, size, sat: sat === undefined ? 95 : sat }); }
+}
+function drainFx() {
+  const fx = sim.fx, light = speed > 4;
+  for (let i = 0; i < fx.length; i++) {
+    const f = fx[i];
+    if (light && f.t < 6 && (i & 3)) continue;
+    if (Math.abs(wx(f.x - cam.x)) * cam.z > vw / 2 + 80 || Math.abs(wy(f.y - cam.y)) * cam.z > vh / 2 + 80) continue;
+    switch (f.t) {
+      case 1: burst(f.x, f.y, 0.42, 3, 0.7, 22, 1.6); break;
+      case 2: burst(f.x, f.y, 0.97, 4, 0.8, 24, 1.8); break;
+      case 3: burst(f.x, f.y, 0.0, 7, 1.6, 20, 2.2); break;
+      case 4: rings.push({ x: f.x, y: f.y, r0: f.r, r1: f.r * 4.5, life: 36, max: 36, hue: f.hue, w: 1.4 }); break;
+      case 5: burst(f.x, f.y, f.hue, 10, 1.3, 38, 2); rings.push({ x: f.x, y: f.y, r0: f.r, r1: f.r * 3, life: 26, max: 26, hue: f.hue, w: 1 }); break;
+      case 6: rings.push({ x: f.x, y: f.y, r0: 10, r1: f.r, life: 40, max: 40, hue: 0.42, w: 2 }); break;
+      case 7: rings.push({ x: f.x, y: f.y, r0: 10, r1: f.r, life: 50, max: 50, hue: 0.03, w: 5 }); burst(f.x, f.y, 0.05, 60, 4, 55, 2.6); break;
+      case 8: rings.push({ x: f.x, y: f.y, r0: 10, r1: f.r, life: 60, max: 60, hue: 0.8, w: 3 }); burst(f.x, f.y, 0.8, 40, 2, 60, 2); break;
+    }
+  }
+  fx.length = 0;
+}
+
+/* ---------- creature drawing ---------- */
+function tailOf(c) {
+  const n = 3 + ((c.g.b[G.TAIL] * 4.99) | 0);
+  if (!c.tail || c.tail.length !== n) { c.tail = []; for (let i = 0; i < n; i++) c.tail.push({ x: c.x - Math.cos(c.a) * c.r * 0.8 * (i + 1), y: c.y - Math.sin(c.a) * c.r * 0.8 * (i + 1) }); }
+  const seg = c.r * 0.8; let px = c.x - Math.cos(c.a) * c.r * 0.5, py = c.y - Math.sin(c.a) * c.r * 0.5;
+  for (let i = 0; i < n; i++) {
+    const s = c.tail[i]; let dx = wx(px - s.x), dy = wy(py - s.y); const d = Math.hypot(dx, dy);
+    if (d > seg * 4) { s.x = px - Math.cos(c.a) * seg; s.y = py - Math.sin(c.a) * seg; }
+    else if (d > seg) { s.x = px - dx / d * seg; s.y = py - dy / d * seg; }
+    px = s.x; py = s.y;
+  }
+  return c.tail;
+}
+function drawCreature(c, sx, sy, z, t) {
+  const r = c.r, b = c.g.b, ca = Math.cos(c.a), sa = Math.sin(c.a), tail = tailOf(c), n = tail.length;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.lineCap = 'round'; ctx.strokeStyle = hsl(c.hue, 80, 55, 0.72);
+  let px = sx - ca * r * 0.5 * z, py = sy - sa * r * 0.5 * z;
+  const wf = t * 0.011 * (0.5 + c.thrust * 1.6) + c.phase, wa = r * 0.3 * (0.35 + c.thrust);
+  for (let i = 0; i < n; i++) {
+    const s = tail[i], k = (i + 1) / n, wig = Math.sin(wf - i * 0.9) * wa * k;
+    const x = sx + (wx(s.x - c.x) - sa * wig) * z, y = sy + (wy(s.y - c.y) + ca * wig) * z;
+    ctx.lineWidth = Math.max(0.7, r * z * (1.3 - 1.1 * k));
+    ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(x, y); ctx.stroke(); px = x; py = y;
+  }
+  const m = dpr * z; ctx.setTransform(m * ca, m * sa, -m * sa, m * ca, dpr * sx, dpr * sy);
+  const nf = (b[G.FIN] * 3.99) | 0;
+  if (nf) {
+    ctx.fillStyle = hsl(c.hue, 70, 48, 0.6);
+    for (let k = 0; k < nf; k++) {
+      const xo = r * (0.35 - k * 0.55), fl = Math.sin(t * 0.008 + k + c.phase) * 0.25 * (0.4 + c.thrust);
+      for (let sgn = -1; sgn <= 1; sgn += 2) { ctx.beginPath(); ctx.moveTo(xo, sgn * r * 0.7); ctx.lineTo(xo - r * 0.95, sgn * r * (1.45 + fl)); ctx.lineTo(xo - r * 0.55, sgn * r * 0.7); ctx.fill(); }
+    }
+  }
+  if (c.diet > 0.4) {
+    const open = c.bit > 0 ? 0.05 : 0.5, len = r * (0.45 + 0.75 * c.diet);
+    ctx.strokeStyle = hsl(c.hue, 95, 84); ctx.lineWidth = r * 0.2;
+    for (let sgn = -1; sgn <= 1; sgn += 2) { ctx.beginPath(); ctx.moveTo(r * 0.7, sgn * r * 0.55); ctx.quadraticCurveTo(r * 0.9 + len, sgn * r * (0.75 + open), r * 0.9 + len, sgn * r * open * 0.45); ctx.stroke(); }
+  }
+  ctx.fillStyle = c.hurt > 0 ? '#ff5f6d' : hsl(c.hue, 78, 52);
+  ctx.beginPath(); ctx.ellipse(0, 0, r * 1.15, r * 0.86, 0, 0, TAU); ctx.fill();
+  ctx.fillStyle = hsl(c.hue, 95, 80, 0.75);
+  ctx.beginPath(); ctx.ellipse(r * 0.12, 0, r * 0.62, r * 0.42, 0, 0, TAU); ctx.fill();
+  const er = r * (0.14 + 0.15 * b[G.RANGE]);
+  ctx.fillStyle = '#04070d'; ctx.beginPath(); ctx.arc(r * 0.62, r * 0.42, er, 0, TAU); ctx.arc(r * 0.62, -r * 0.42, er, 0, TAU); ctx.fill();
+  ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(r * 0.68, r * 0.42, er * 0.4, 0, TAU); ctx.arc(r * 0.68, -r * 0.42, er * 0.4, 0, TAU); ctx.fill();
+}
+function drawSelection(c, sx, sy, z, t) {
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.globalCompositeOperation = 'lighter';
+  const half = c.fov / 2, R = c.range * z, st = c.fov / NS;
+  for (let s = 0; s < NS; s++) {
+    const pl = c.inp[s * NCH], me = c.inp[s * NCH + 1], bo = c.inp[s * NCH + 2];
+    const a0 = c.a - half + s * st, a1 = a0 + st;
+    ctx.beginPath(); ctx.moveTo(sx, sy); ctx.arc(sx, sy, R, a0, a1); ctx.closePath();
+    const top = Math.max(pl, me, bo);
+    ctx.fillStyle = top < 0.01 ? 'rgba(170,210,255,.035)' : bo === top ? hsl(0.11, 100, 70, 0.06 + bo * 0.22) : me === top ? `rgba(255,111,125,${0.06 + me * 0.22})` : `rgba(98,230,167,${0.05 + pl * 0.2})`;
+    ctx.fill(); ctx.strokeStyle = 'rgba(190,220,255,.13)'; ctx.lineWidth = 1; ctx.stroke();
+  }
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.strokeStyle = 'rgba(255,200,120,.9)'; ctx.lineWidth = 1.2; ctx.setLineDash([3, 5]); ctx.lineDashOffset = -t * 0.02;
+  ctx.beginPath(); ctx.arc(sx, sy, c.r * z * 2.1 + 5, 0, TAU); ctx.stroke(); ctx.setLineDash([]);
+}
+
+/* ---------- frame ---------- */
+const vis = [];
+function render(t) {
+  const z = cam.z, hx = vw / 2, hy = vh / 2;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
+  ctx.fillStyle = bgGrad; ctx.fillRect(0, 0, vw, vh);
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.globalAlpha = 0.16;
+  for (const p of sim.patches) { const sx = wx(p.x - cam.x) * z + hx, sy = wy(p.y - cam.y) * z + hy, r = p.r * 1.7 * z; if (sx < -r || sx > vw + r || sy < -r || sy > vh + r) continue; ctx.drawImage(HAZE, sx - r, sy - r, r * 2, r * 2); }
+  ctx.fillStyle = '#bfe3ff';
+  for (const d of dust) {
+    let x = (d.x * vw - cam.x * z * d.d) % vw, y = (d.y * vh - cam.y * z * d.d) % vh; if (x < 0) x += vw; if (y < 0) y += vh;
+    ctx.globalAlpha = d.a * 0.5; ctx.fillRect(x, y, d.s, d.s);
+  }
+  // food
+  const food = sim.food, pm = hx + 12, pn = hy + 12;
+  ctx.globalAlpha = 0.9;
+  for (let i = 0, n = food.length; i < n; i++) {
+    const f = food[i], dx = wx(f.x - cam.x) * z; if (dx < -pm || dx > pm) continue;
+    const dy = wy(f.y - cam.y) * z; if (dy < -pn || dy > pn) continue;
+    if (f.t) { const s = Math.max(2.2, 10 * z * (1 - f.age / 700)); ctx.drawImage(MEAT, dx + hx - s, dy + hy - s, s * 2, s * 2); }
+    else { const s = Math.max(1.8, 7 * z * (1 + 0.18 * Math.sin(t * 0.002 + f.ph))); ctx.drawImage(PLANT, dx + hx - s, dy + hy - s, s * 2, s * 2); }
+  }
+  // particles
+  for (let i = parts.length - 1; i >= 0; i--) {
+    const p = parts[i]; p.x += p.vx; p.y += p.vy; p.vx *= 0.95; p.vy *= 0.95;
+    if (--p.life <= 0) { parts[i] = parts[parts.length - 1]; parts.pop(); continue; }
+    const sx = wx(p.x - cam.x) * z + hx, sy = wy(p.y - cam.y) * z + hy, k = p.life / p.max, s = Math.max(1, p.size * z * 2.4);
+    ctx.globalAlpha = k; ctx.drawImage(GLOW[((p.hue * 36) | 0) % 36], sx - s, sy - s, s * 2, s * 2);
+  }
+  // creatures: glow pass
+  vis.length = 0; const cr = sim.cr;
+  for (let i = 0, n = cr.length; i < n; i++) {
+    const c = cr[i], m = (c.r * 4 + 30) * z, dx = wx(c.x - cam.x) * z; if (dx < -hx - m || dx > hx + m) continue;
+    const dy = wy(c.y - cam.y) * z; if (dy < -hy - m || dy > hy + m) continue;
+    c._sx = dx + hx; c._sy = dy + hy; vis.push(c);
+    const s = c.r * z * (2.6 + c.glow * 3.2);
+    ctx.globalAlpha = 0.34 + c.glow * 0.5; ctx.drawImage(GLOW[((c.hue * 36) | 0) % 36], c._sx - s, c._sy - s, s * 2, s * 2);
+  }
+  ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+  for (let i = 0; i < vis.length; i++) {
+    const c = vis[i];
+    if (c.r * z >= 2.6) drawCreature(c, c._sx, c._sy, z, t);
+    else { ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.fillStyle = c.hurt > 0 ? '#ff5f6d' : hsl(c.hue, 85, 66); ctx.beginPath(); ctx.arc(c._sx, c._sy, Math.max(1.3, c.r * z), 0, TAU); ctx.fill(); }
+  }
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  for (let i = rings.length - 1; i >= 0; i--) {
+    const g = rings[i]; if (--g.life <= 0) { rings.splice(i, 1); continue; }
+    const k = 1 - g.life / g.max, e = 1 - (1 - k) * (1 - k), sx = wx(g.x - cam.x) * z + hx, sy = wy(g.y - cam.y) * z + hy;
+    ctx.strokeStyle = hsl(g.hue, 95, 70, (1 - k) * 0.9); ctx.lineWidth = g.w * (1 - k) + 0.4;
+    ctx.beginPath(); ctx.arc(sx, sy, (g.r0 + (g.r1 - g.r0) * e) * z, 0, TAU); ctx.stroke();
+  }
+  if (sel && !sel.dead) drawSelection(sel, wx(sel.x - cam.x) * z + hx, wy(sel.y - cam.y) * z + hy, z, t);
+}
+
+/* ---------- director ---------- */
+function direct(now) {
+  if (!auto || !entered) return;
+  if (sel && sel.dead && nextCut > now + 1400) nextCut = now + 1400;
+  if (now < nextCut) return;
+  const cr = sim.cr; if (!cr.length) return;
+  let pick = null; cutKind = (cutKind + 1) % 4;
+  if (cutKind === 0) { for (const c of cr) if (c.diet > 0.6 && (!pick || c.kills > pick.kills)) pick = c; }
+  else if (cutKind === 1) { let sp = null; for (const s of sim.living) if (s.est && (!sp || s.count > sp.count)) sp = s; const mem = cr.filter(c => c.sp === sp); pick = mem[(Math.random() * mem.length) | 0]; }
+  else if (cutKind === 2) { let sp = null; for (const s of sim.living) if (s.est && (!sp || s.born > sp.born)) sp = s; const mem = cr.filter(c => c.sp === sp); pick = mem[(Math.random() * mem.length) | 0]; }
+  else { for (const c of cr) if (!pick || c.kids > pick.kids) pick = c; }
+  if (!pick) pick = cr[(Math.random() * cr.length) | 0];
+  select(pick, true); cam.tz = Math.max(minZ, 1.5 + Math.random() * 0.9); nextCut = now + 13000;
+}
+function select(c, keepAuto) {
+  sel = c; follow = !!c; selDeadAt = 0; edges = null;
+  if (!keepAuto) setAuto(false);
+  showSpec(!!c);
+  if (c) {
+    $('spName').textContent = c.sp.name; $('spName').style.color = hsl(c.hue, 90, 74);
+    $('spId').textContent = 'Specimen #' + c.id;
+    const b = c.g.b;
+    $('gDiet').style.left = (c.diet * 100) + '%';
+    $('gSize').style.transform = `scaleX(${b[G.SIZE]})`; $('gSpeed').style.transform = `scaleX(${b[G.SPEED]})`;
+    $('gRange').style.transform = `scaleX(${b[G.RANGE]})`; $('gMut').style.transform = `scaleX(${b[G.MUT]})`;
+    const kind = c.diet > 0.6 ? 'A hunter' : c.diet > 0.33 ? 'An opportunist that eats whatever it finds' : 'A grazer';
+    $('verdict').textContent = `${kind}${c.diet > 0.6 ? ' that reads other bodies as food' : c.diet > 0.33 ? '' : ' that lives on drifting algae'}. ${c.sp.parentName ? 'Its line split from ' + c.sp.parentName + ' at tick ' + fmt(c.sp.born) + '.' : 'Its line reaches back to the first water.'}`;
+  }
+}
+function showSpec(on) { $('spec').hidden = !on; $('census').hidden = on; $('side').classList.toggle('census', !on); }
+function setAuto(v) { auto = v; $('bAuto').setAttribute('aria-pressed', v ? 'true' : 'false'); if (v) nextCut = 0; }
+
+/* ---------- brain view ---------- */
+const IN_ROW = ['algae', 'meat', 'body', 'bigger?', 'kin?'], EX = ['energy', 'health', 'speed', 'clock', 'bias', 'mem a', 'mem b', 'touch', 'signal'], OUT = ['turn', 'swim', 'bite', 'glow', 'mem a', 'mem b'];
+function sizeCanvas(c) { const w = c.clientWidth, h = c.clientHeight, W2 = Math.round(w * dpr), H2 = Math.round(h * dpr); if (c.width !== W2 || c.height !== H2) { c.width = W2; c.height = H2; } const g = c.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); return [g, w, h]; }
+function actCol(v, a) { return v >= 0 ? `rgba(255,200,120,${a})` : `rgba(110,190,255,${a})`; }
+function drawBrain() {
+  const c = sel; if (!c) return; const [g, w, h] = sizeCanvas($('brain')); if (!w) return; g.clearRect(0, 0, w, h);
+  const cs = 13, gx = 44, gy = 14, hxp = w * 0.6, oxp = w - 52;
+  const ipos = [], hpos = [], opos = [];
+  for (let s = 0; s < NS; s++) for (let k = 0; k < NCH; k++) ipos.push([gx + s * (cs + 2) + cs / 2, gy + k * (cs + 2) + cs / 2]);
+  const ey = gy + NCH * (cs + 2) + 16;
+  for (let k = 0; k < 9; k++) ipos.push([20 + (k % 3) * 40, ey + ((k / 3) | 0) * 31 + cs / 2]);
+  for (let k = 0; k < NH; k++) hpos.push([hxp + (k % 2 ? 9 : -9), 12 + k * ((h - 24) / (NH - 1))]);
+  for (let k = 0; k < NO; k++) opos.push([oxp, 22 + k * ((h - 44) / (NO - 1))]);
+  if (!edges) {
+    const wts = c.g.w, all = [];
+    for (let hh = 0; hh < NH; hh++) for (let i = 0; i < NI; i++) all.push([i, hh, wts[hh * NI + i]]);
+    all.sort((a, b) => Math.abs(b[2]) - Math.abs(a[2])); edges = { ih: all.slice(0, 110), ho: [] };
+    for (let o = 0; o < NO; o++) for (let hh = 0; hh < NH; hh++) edges.ho.push([hh, o, wts[NI * NH + o * (NH + 1) + hh]]);
+  }
+  g.lineWidth = 1;
+  for (const e of edges.ih) { const s = e[2] * c.inp[e[0]], a = Math.min(0.9, Math.abs(s) * 0.55); if (a < 0.03) continue; g.strokeStyle = actCol(s, a); g.beginPath(); g.moveTo(ipos[e[0]][0], ipos[e[0]][1]); g.lineTo(hpos[e[1]][0], hpos[e[1]][1]); g.stroke(); }
+  for (const e of edges.ho) { const s = e[2] * c.hid[e[0]], a = Math.min(0.9, Math.abs(s) * 0.4); if (a < 0.04) continue; g.strokeStyle = actCol(s, a); g.beginPath(); g.moveTo(hpos[e[0]][0], hpos[e[0]][1]); g.lineTo(opos[e[1]][0] - 6, opos[e[1]][1]); g.stroke(); }
+  g.font = '9px "IBM Plex Mono",ui-monospace,monospace'; g.textBaseline = 'middle';
+  g.fillStyle = '#8497ab'; g.textAlign = 'right';
+  for (let k = 0; k < NCH; k++) g.fillText(IN_ROW[k], gx - 5, gy + k * (cs + 2) + cs / 2);
+  for (let i = 0; i < NS * NCH; i++) { const v = c.inp[i]; g.fillStyle = 'rgba(160,200,230,.09)'; g.fillRect(ipos[i][0] - cs / 2, ipos[i][1] - cs / 2, cs, cs); if (Math.abs(v) > 0.02) { g.fillStyle = actCol(v, Math.min(1, Math.abs(v))); g.fillRect(ipos[i][0] - cs / 2, ipos[i][1] - cs / 2, cs, cs); } }
+  g.textAlign = 'center';
+  for (let k = 0; k < 9; k++) { const p = ipos[NS * NCH + k], v = c.inp[NS * NCH + k]; g.fillStyle = 'rgba(160,200,230,.09)'; g.beginPath(); g.arc(p[0], p[1], 5.5, 0, TAU); g.fill(); g.fillStyle = actCol(v, Math.min(1, Math.abs(v))); g.beginPath(); g.arc(p[0], p[1], 5.5, 0, TAU); g.fill(); g.fillStyle = '#8497ab'; g.fillText(EX[k], p[0], p[1] + 13); }
+  for (let k = 0; k < NH; k++) { const v = c.hid[k], p = hpos[k]; g.fillStyle = '#0b1626'; g.beginPath(); g.arc(p[0], p[1], 5, 0, TAU); g.fill(); g.fillStyle = actCol(v, Math.abs(v)); g.beginPath(); g.arc(p[0], p[1], 5, 0, TAU); g.fill(); g.strokeStyle = 'rgba(190,220,255,.3)'; g.stroke(); }
+  g.textAlign = 'left';
+  for (let k = 0; k < NO; k++) { const v = c.out[k], p = opos[k]; g.fillStyle = '#0b1626'; g.beginPath(); g.arc(p[0], p[1], 6, 0, TAU); g.fill(); g.fillStyle = actCol(v, Math.abs(v)); g.beginPath(); g.arc(p[0], p[1], 6, 0, TAU); g.fill(); g.strokeStyle = 'rgba(190,220,255,.35)'; g.stroke(); g.fillStyle = Math.abs(v) > 0.5 ? '#e4edf5' : '#8497ab'; g.fillText(OUT[k], p[0] + 11, p[1]); }
+}
+
+/* ---------- HUD ---------- */
+const CLS = ['grazer', 'omnivore', 'predator'];
+function hud() {
+  const cr = sim.cr; let carn = 0; for (const c of cr) if (c.diet > 0.6) carn++;
+  $('sT').textContent = fmt(sim.tick); $('sN').textContent = cr.length; $('sC').textContent = carn; $('sG').textContent = sim.stats.maxGen;
+  const live = sim.living.filter(s => s.count > 0).sort((a, b) => b.count - a.count); $('sS').textContent = live.filter(s => s.est).length;
+  if (!sel) {
+    const top = live.slice(0, 8), mx = top.length ? top[0].count : 1; let html = '';
+    for (const s of top) html += `<button class="sprow" data-sp="${s.id}" style="color:${hsl(s.hue, 90, 68)}"><span class="sw"></span><em>${s.name}<span class="meta c${s.cls}">${CLS[s.cls]} · ${s.born ? 'since tick ' + fmt(s.born) : 'founding line'}</span></em><b style="color:var(--fg)">${s.count}</b><span class="bar" style="transform:scaleX(${(s.count / mx).toFixed(3)})"></span></button>`;
+    $('cenlist').innerHTML = html; $('cenN').textContent = live.length + ' lineages';
+  } else {
+    const c = sel;
+    $('kAge').textContent = fmt(c.age); $('kGen').textContent = c.gen; $('kKids').textContent = c.kids; $('kKills').textContent = c.kills;
+    $('mE').style.transform = `scaleX(${Math.max(0, Math.min(1, c.e / c.maxE)).toFixed(3)})`; $('mH').style.transform = `scaleX(${Math.max(0, Math.min(1, c.h / c.maxH)).toFixed(3)})`;
+    if (c.dead) { $('spId').textContent = `Specimen #${c.id} · ${c.cause === 'eaten' ? 'killed' : c.cause === 'aged' ? 'died of old age' : 'starved'}`; }
+  }
+  drawStream(); drawMini();
+}
+function drawStream() {
+  const [g, w, h] = sizeCanvas($('streamc')); if (!w) return; g.clearRect(0, 0, w, h);
+  const Hs = sim.history, n = Hs.length; if (n < 3) return;
+  const tot = new Map(); let maxN = 1;
+  for (const s of Hs) { if (s.n > maxN) maxN = s.n; for (const p of s.sp) tot.set(p[0], (tot.get(p[0]) || 0) + p[1]); }
+  const top = [...tot].sort((a, b) => b[1] - a[1]).slice(0, 12).map(x => x[0]).sort((a, b) => a - b), idx = new Map(top.map((id, i) => [id, i])), L = top.length + 1;
+  const cum = new Float32Array(n * (L + 1)), sc = (h - 6) / maxN;
+  for (let i = 0; i < n; i++) {
+    const row = new Float32Array(L); let sum = 0; for (const p of Hs[i].sp) { const k = idx.get(p[0]); row[k === undefined ? L - 1 : k] += p[1]; sum += p[1]; }
+    let y = h / 2 - sum * sc / 2; cum[i * (L + 1)] = y; for (let k = 0; k < L; k++) { y += row[k] * sc; cum[i * (L + 1) + k + 1] = y; }
+  }
+  const X = i => i / (n - 1) * w;
+  for (let k = 0; k < L; k++) {
+    const sp = k < L - 1 ? sim.species.get(top[k]) : null;
+    g.fillStyle = sp ? hsl(sp.hue, 85, sp.cls === 2 ? 62 : 56, 0.88) : 'rgba(132,151,171,.4)';
+    g.beginPath(); for (let i = 0; i < n; i++) g.lineTo(X(i), cum[i * (L + 1) + k]); for (let i = n - 1; i >= 0; i--) g.lineTo(X(i), cum[i * (L + 1) + k + 1]); g.closePath(); g.fill();
+  }
+  $('strN').textContent = 'last ' + fmt(Hs[n - 1].t - Hs[0].t) + ' ticks';
+}
+function drawMini() {
+  const mc = $('minic'); if (!mc.clientWidth) return; const [g, w, h] = sizeCanvas(mc); g.clearRect(0, 0, w, h);
+  const kx = w / W, ky = h / H;
+  g.fillStyle = 'rgba(98,230,167,.10)'; for (const p of sim.patches) { g.beginPath(); g.arc(p.x * kx, p.y * ky, p.r * kx, 0, TAU); g.fill(); }
+  for (const c of sim.cr) { g.fillStyle = hsl(c.hue, 90, 66); const s = c.diet > 0.6 ? 2.6 : 1.6; g.fillRect(c.x * kx - s / 2, c.y * ky - s / 2, s, s); }
+  const rw = vw / cam.z * kx, rh = vh / cam.z * ky; g.strokeStyle = 'rgba(255,200,120,.9)'; g.lineWidth = 1;
+  for (let ox = -1; ox <= 1; ox++) for (let oy = -1; oy <= 1; oy++) g.strokeRect(cam.x * kx - rw / 2 + ox * w, cam.y * ky - rh / 2 + oy * h, rw, rh);
+}
+
+/* ---------- narrator ---------- */
+function note(html, hue, tag) {
+  const d = document.createElement('div'); d.className = 'note'; if (hue !== undefined) d.style.setProperty('--c', hsl(hue, 90, 70));
+  d.innerHTML = html + `<small>${tag || 'tick ' + fmt(sim ? sim.tick : 0)}</small>`;
+  const l = $('notelist'); l.insertBefore(d, l.firstChild); while (l.children.length > 5) l.removeChild(l.lastChild); return d;
+}
+const one = a => a[(Math.random() * a.length) | 0];
+function narrate(e) {
+  const nm = `<em>${e.name}</em>`, par = e.parentName ? `<em>${e.parentName}</em>` : null;
+  switch (e.type) {
+    case 'species': note(par ? one([`${nm} has drifted far enough from ${par} to count as its own kind.`, `A new branch: ${nm}, descended from ${par}.`, `${par} has thrown off a daughter lineage. Call it ${nm}.`]) : `${nm} has taken hold, a lineage with no living ancestor.`, e.hue); break;
+    case 'predator': note(`${nm} has started killing for a living. A mutation rewired its feeding circuit from algae to bodies.`, e.hue); break;
+    case 'extinct': note(one([`${nm} is extinct. It lasted ${fmt(e.life)} ticks and once numbered ${e.peak}.`, `The last ${nm} is dead. Peak population ${e.peak}; nothing of it remains but its descendants.`]), e.hue); break;
+    case 'boom': note(`Population boom: from ${e.from} to ${e.n}. The algae will not keep up for long.`, 0.42); break;
+    case 'crash': note(`Collapse. ${e.from} alive a moment ago, ${e.n} now. Whoever survives this will own the water.`, 0.98); break;
+    case 'dominance': note(`${nm} now makes up ${Math.round(e.share * 100)}% of everything alive.`, e.hue); break;
+    case 'apex': note(`One ${nm} has made its eighth kill. Its young will inherit that brain.`, e.hue); break;
+    case 'smite': note(`Something struck the water. ${e.k} dead in an instant, and a clearing for whoever arrives first.`, 0.05); break;
+    case 'mutagen': note(`Radiation scrambled ${e.k} genomes. Most of those brains are now worse. One might be better.`, 0.8); break;
+  }
+}
+let sampleFn = null, asking = false;
+function initClaude() {
+  if (!(window.claude && typeof window.claude.use === 'function')) return;
+  window.claude.use('sample').then(s => { if (s) { sampleFn = s; $('ask').hidden = false; } }).catch(() => { });
+}
+function telemetry() {
+  const h = sim.history, last = h[h.length - 1] || {}, first = h[0] || {};
+  const live = sim.living.filter(s => s.est && s.count > 0).sort((a, b) => b.count - a.count).slice(0, 7).map(s => ({ species: s.name, alive: s.count, diet: CLS[s.cls], bornAtTick: s.born, descendedFrom: s.parentName || 'founder', bodySize: +s.proto[G.SIZE].toFixed(2), speed: +s.proto[G.SPEED].toFixed(2), eyesight: +s.proto[G.RANGE].toFixed(2), killsByLineage: s.kills }));
+  const d = { tick: sim.tick, alive: sim.cr.length, deepestGeneration: sim.stats.maxGen, predatorsAlive: last.carn, algae: last.plants, populationAWhileAgo: first.n, totals: sim.stats, species: live };
+  if (sel && !sel.dead) d.creatureBeingWatched = { species: sel.sp.name, age: sel.age, generation: sel.gen, offspring: sel.kids, kills: sel.kills, energyPct: Math.round(sel.e / sel.maxE * 100), diet: +sel.diet.toFixed(2) };
+  return d;
+}
+function askClaude() {
+  if (!sampleFn || asking) return; asking = true; $('ask').disabled = true;
+  const el = note('Reading the water…', 0.11, 'Claude · field naturalist'), body = el.firstChild;
+  const prompt = 'You are a field naturalist observing an artificial-life simulation called Primordia. Each creature is steered by its own small neural network; behaviours evolved by mutation and natural selection, nothing is scripted. Below is live telemetry as JSON. Write one field note of 2 to 3 sentences about what is happening right now: name specific species (binomial names), say who is winning or losing and offer one sharp hypothesis about why. Voice: precise, dry, vivid, like a good nature documentary. Plain text only, no markdown, no lists, no preamble.\n\n' + JSON.stringify(telemetry());
+  sampleFn(prompt, { modelTier: 'quick', cache: false, onText: ({ text }) => { if (text) body.textContent = text; } })
+    .then(r => { if (r && r.text) body.textContent = r.text; })
+    .catch(err => { body.textContent = err && err.code === 'rate_limited' ? 'The naturalist needs a minute. Try again shortly.' : 'The naturalist is unavailable right now.'; if (err && err.code === 'not_granted') $('ask').hidden = true; })
+    .then(() => { asking = false; $('ask').disabled = false; });
+}
+
+/* ---------- input ---------- */
+const ptrs = new Map(); let drag = null, pinch = 0;
+function toWorld(px, py) { return [((cam.x + (px - vw / 2) / cam.z) % W + W) % W, ((cam.y + (py - vh / 2) / cam.z) % H + H) % H]; }
+function zoomAt(px, py, f) {
+  const [wx0, wy0] = toWorld(px, py), nz = Math.max(minZ, Math.min(5, cam.tz * f));
+  cam.tz = nz; cam.z = nz; cam.x = ((wx0 - (px - vw / 2) / nz) % W + W) % W; cam.y = ((wy0 - (py - vh / 2) / nz) % H + H) % H;
+}
+cv.addEventListener('pointerdown', e => { cv.setPointerCapture(e.pointerId); ptrs.set(e.pointerId, [e.offsetX, e.offsetY]); if (ptrs.size === 1) drag = { x: e.offsetX, y: e.offsetY, moved: 0 }; else { const p = [...ptrs.values()]; pinch = Math.hypot(p[0][0] - p[1][0], p[0][1] - p[1][1]); if (drag) drag.moved = 99; } });
+cv.addEventListener('pointermove', e => {
+  if (!ptrs.has(e.pointerId)) return; ptrs.set(e.pointerId, [e.offsetX, e.offsetY]);
+  if (ptrs.size === 2) { const p = [...ptrs.values()], d = Math.hypot(p[0][0] - p[1][0], p[0][1] - p[1][1]); if (pinch > 0) { zoomAt((p[0][0] + p[1][0]) / 2, (p[0][1] + p[1][1]) / 2, d / pinch); follow = false; setAuto(false); } pinch = d; return; }
+  if (!drag) return; const dx = e.offsetX - drag.x, dy = e.offsetY - drag.y; drag.moved += Math.abs(dx) + Math.abs(dy);
+  if (drag.moved > 6) { cam.x = ((cam.x - dx / cam.z) % W + W) % W; cam.y = ((cam.y - dy / cam.z) % H + H) % H; follow = false; if (auto) setAuto(false); }
+  drag.x = e.offsetX; drag.y = e.offsetY;
+});
+function up(e) {
+  ptrs.delete(e.pointerId); if (ptrs.size < 2) pinch = 0;
+  if (drag && drag.moved <= 6 && e.type === 'pointerup') click(e.offsetX, e.offsetY);
+  if (!ptrs.size) drag = null;
+}
+cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+cv.addEventListener('wheel', e => { e.preventDefault(); zoomAt(e.offsetX, e.offsetY, Math.exp(-e.deltaY * 0.0015)); if (auto) setAuto(false); }, { passive: false });
+function click(px, py) {
+  const [x, y] = toWorld(px, py); $('hint').style.opacity = 0;
+  if (tool === 'observe') { const c = sim.pick(x, y, Math.max(26, 30 / cam.z)); if (c) { select(c); cam.tz = Math.max(cam.tz, 1.5); } else if (sel) { select(null); } }
+  else if (tool === 'feed') sim.feed(x, y);
+  else if (tool === 'smite') sim.smite(x, y, 190);
+  else if (tool === 'mutate') sim.mutagen(x, y, 210);
+}
+function setSpeed(s) { speed = s; paused = false; $('bPause').setAttribute('aria-pressed', 'false'); $('bPause').textContent = 'Pause'; document.querySelectorAll('.sp').forEach(b => b.setAttribute('aria-pressed', +b.dataset.s === s ? 'true' : 'false')); }
+function setTool(t) { tool = t; document.querySelectorAll('.tool').forEach(b => b.setAttribute('aria-pressed', b.dataset.t === t ? 'true' : 'false')); cv.style.cursor = t === 'observe' ? 'crosshair' : 'cell'; }
+function togglePause() { paused = !paused; $('bPause').setAttribute('aria-pressed', paused ? 'true' : 'false'); $('bPause').textContent = paused ? 'Resume' : 'Pause'; }
+$('bPause').onclick = togglePause;
+document.querySelectorAll('.sp').forEach(b => b.onclick = () => setSpeed(+b.dataset.s));
+document.querySelectorAll('.tool').forEach(b => b.onclick = () => setTool(b.dataset.t));
+$('bAuto').onclick = () => setAuto(!auto);
+$('abund').oninput = e => { sim.P.plantRate = +e.target.value; sim.P.maxPlants = 800 + 460 * +e.target.value; };
+$('mut').oninput = e => { sim.P.mutScale = +e.target.value; };
+$('bSoup').onclick = () => newWorld(false);
+$('closeSel').onclick = () => select(null);
+$('cenlist').addEventListener('click', e => { const b = e.target.closest('.sprow'); if (!b) return; const mem = sim.cr.filter(c => c.sp.id === +b.dataset.sp); if (mem.length) { mem.sort((a, c) => (c.kids + c.kills) - (a.kids + a.kills)); select(mem[0]); cam.tz = Math.max(minZ, 1.8); } });
+$('ask').onclick = askClaude;
+function enter(evolved) { if (!evolved) newWorld(false); entered = true; $('intro').classList.add('gone'); nextCut = 0; }
+$('enter').onclick = () => enter(true); $('enterSoup').onclick = () => enter(false);
+window.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return;
+  if (e.code === 'Space') { e.preventDefault(); togglePause(); } else if (e.key === '1') setSpeed(1); else if (e.key === '2') setSpeed(4); else if (e.key === '3') setSpeed(16);
+  else if (e.key === 'Escape') select(null); else if (e.key === 'd') setAuto(!auto);
+});
+window.addEventListener('resize', resize);
+
+/* ---------- loop ---------- */
+let lastHud = 0;
+function frame(now) {
+  requestAnimationFrame(frame);
+  if (!vw || cv.clientWidth !== vw || cv.clientHeight !== vh) resize();
+  if (!vw) return;
+  frameN++;
+  if (!paused) { const t0 = performance.now(), n = entered ? speed : 1; for (let i = 0; i < n; i++) { sim.step(); if (performance.now() - t0 > 26) break; } }
+  drainFx();
+  if (sim.events.length) { const ev = sim.events.splice(0); for (const e of ev.slice(-2)) narrate(e); }
+  direct(now);
+  if (sel && sel.dead) { if (!selDeadAt) selDeadAt = now; follow = false; if (!auto && now - selDeadAt > 4000) select(null, true); }
+  if (follow && sel && !sel.dead) { cam.x = ((cam.x + wx(sel.x - cam.x) * 0.07) % W + W) % W; cam.y = ((cam.y + wy(sel.y - cam.y) * 0.07) % H + H) % H; }
+  cam.z += (cam.tz - cam.z) * 0.035;
+  render(now);
+  if (sel) drawBrain();
+  if (now - lastHud > 300) { lastHud = now; hud(); }
+}
+newWorld(true); resize(); initClaude(); hud();
+window.__prim = { get sim() { return sim; }, cam, get sel() { return sel; } };
+requestAnimationFrame(frame);
+})();
+
+</script>
