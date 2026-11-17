@@ -1,0 +1,219 @@
+<title>Primordia</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Hanken+Grotesk:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one full-viewport living tank; instruments float at the edges like labels on a specimen jar. Single deliberate dark world. */
+:root{
+  color-scheme:dark;
+  --abyss:#03060c; --deep:#071221; --glass:rgba(7,14,26,.74); --line:rgba(160,200,230,.14);
+  --fg:#e4edf5; --mute:#8497ab; --dim:#566679;
+  --lamp:#ffc878; --lamp-ink:#1c1206; --blood:#ff6f7d; --leaf:#62e6a7;
+  --serif:"Instrument Serif","Iowan Old Style",Georgia,serif;
+  --sans:"Hanken Grotesk",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  --gx:max(16px,env(safe-area-inset-left,0px)); --gxr:max(16px,env(safe-area-inset-right,0px));
+}
+html,body{height:100%}
+body{background:var(--abyss);color:var(--fg);font-family:var(--sans);font-size:14px;overflow:hidden;-webkit-font-smoothing:antialiased}
+#app{position:relative;height:100%;overflow:hidden;background:var(--abyss);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+#world{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:crosshair}
+.vig{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at 50% 45%,transparent 45%,rgba(1,3,8,.72) 100%)}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer;background:none;border:0;padding:0}
+button:focus-visible,input:focus-visible{outline:2px solid var(--lamp);outline-offset:2px}
+.lbl{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--mute)}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.panel{background:var(--glass);border:1px solid var(--line);border-radius:10px;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+
+/* masthead */
+#mast{position:absolute;top:16px;left:var(--gx);pointer-events:none;display:flex;flex-direction:column;gap:10px}
+#mast h1{font-family:var(--serif);font-weight:400;font-size:38px;line-height:.9;margin:0;letter-spacing:.01em;text-shadow:0 0 28px rgba(120,220,255,.35)}
+#mast h1 i{color:var(--lamp)}
+.stats{display:flex;gap:18px;flex-wrap:wrap}
+.stat{display:flex;flex-direction:column;gap:2px}
+.stat b{font-family:var(--mono);font-weight:500;font-size:17px;font-variant-numeric:tabular-nums}
+.stat.pred b{color:var(--blood)}
+
+/* field notes */
+#notes{position:absolute;top:128px;left:var(--gx);width:min(320px,calc(100% - 32px));display:flex;flex-direction:column;gap:8px;pointer-events:none}
+#notes .head{display:flex;align-items:center;gap:10px;pointer-events:auto}
+#ask{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--lamp-ink);background:var(--lamp);border-radius:99px;padding:5px 10px}
+#ask:disabled{opacity:.5;cursor:default}
+#notelist{display:flex;flex-direction:column;gap:8px}
+.note{font-family:var(--serif);font-size:17px;line-height:1.25;color:var(--fg);text-shadow:0 1px 10px #000,0 0 3px #000;animation:rise .6s ease both;border-left:2px solid var(--c,var(--mute));padding-left:10px}
+.note em{font-style:italic;color:var(--c,var(--lamp))}
+.note small{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.08em;color:var(--mute);margin-top:2px}
+.note:nth-child(2){opacity:.7}.note:nth-child(3){opacity:.45}.note:nth-child(n+4){display:none}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}}
+
+/* side panel */
+#side{position:absolute;top:16px;right:var(--gxr);width:300px;max-height:calc(100% - 200px);overflow:auto;padding:14px;display:flex;flex-direction:column;gap:12px}
+#side h2{font-family:var(--serif);font-weight:400;font-size:24px;line-height:1.05;margin:0;font-style:italic;text-wrap:balance}
+.rowhead{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.sprow{display:grid;grid-template-columns:10px 1fr auto;gap:9px;align-items:center;width:100%;text-align:left;padding:5px 6px;border-radius:6px;position:relative}
+.sprow:hover{background:rgba(160,200,230,.08)}
+.sprow .sw{width:10px;height:10px;border-radius:50%;box-shadow:0 0 10px currentColor;background:currentColor}
+.sprow em{font-family:var(--serif);font-size:17px;line-height:1.1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sprow .meta{display:block;font-family:var(--mono);font-style:normal;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--mute)}
+.sprow .meta.c2{color:var(--blood)}
+.sprow b{font-family:var(--mono);font-weight:500;font-variant-numeric:tabular-nums}
+.sprow .bar{position:absolute;left:25px;right:6px;bottom:1px;height:1px;background:currentColor;opacity:.5;transform-origin:left}
+#closeSel{font-family:var(--mono);font-size:11px;color:var(--mute);border:1px solid var(--line);border-radius:6px;padding:3px 8px}
+#closeSel:hover{color:var(--fg)}
+.kv{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.kv div{display:flex;flex-direction:column;gap:2px}
+.kv b{font-family:var(--mono);font-weight:500;font-variant-numeric:tabular-nums;font-size:14px}
+.meter{display:grid;grid-template-columns:62px 1fr;gap:8px;align-items:center}
+.meter .track{height:5px;border-radius:3px;background:rgba(160,200,230,.12);overflow:hidden;position:relative}
+.meter .fill{position:absolute;inset:0;transform-origin:left;background:var(--fg);border-radius:3px}
+.meter .fill.e{background:var(--lamp)}.meter .fill.h{background:var(--leaf)}
+.diet .track{background:linear-gradient(90deg,var(--leaf),#c9c38a,var(--blood));height:5px;overflow:visible}
+.diet .pin{position:absolute;top:-3px;width:3px;height:11px;background:#fff;border-radius:2px;margin-left:-1px}
+#brain{width:100%;height:236px;display:block}
+#verdict{font-family:var(--serif);font-size:16px;line-height:1.25;color:var(--mute);margin:0}
+
+/* bottom instruments */
+#stream{position:absolute;left:var(--gx);bottom:76px;width:320px;padding:10px 12px 8px;display:flex;flex-direction:column;gap:6px}
+#streamc{width:100%;height:92px;display:block}
+#mini{position:absolute;right:var(--gxr);bottom:16px;width:168px;height:112px;padding:0;overflow:hidden}
+#minic{width:100%;height:100%;display:block}
+#bar{position:absolute;left:0;right:0;margin-inline:auto;width:fit-content;bottom:16px;display:flex;align-items:center;gap:6px;padding:6px;max-width:calc(100% - 32px);flex-wrap:wrap;justify-content:center}
+.grp{display:flex;align-items:center;gap:2px;padding:0 4px}
+.grp+.grp{border-left:1px solid var(--line);padding-left:8px}
+.tb{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--mute);padding:7px 9px;border-radius:6px;white-space:nowrap}
+.tb:hover{color:var(--fg);background:rgba(160,200,230,.08)}
+.tb[aria-pressed="true"]{color:var(--lamp-ink);background:var(--lamp)}
+.tb.danger[aria-pressed="true"]{background:var(--blood)}
+.sl{display:flex;flex-direction:column;gap:1px;padding:0 4px}
+.sl input{width:84px;accent-color:var(--lamp);height:14px}
+#hint{position:absolute;left:50%;bottom:74px;transform:translateX(-50%);font-family:var(--mono);font-size:11px;color:var(--mute);letter-spacing:.06em;pointer-events:none;text-shadow:0 1px 6px #000;white-space:nowrap;transition:opacity .4s}
+
+/* intro */
+#intro{position:absolute;inset:0;display:grid;place-items:center;background:radial-gradient(ellipse at center,rgba(3,6,12,.55),rgba(3,6,12,.9));transition:opacity .9s ease;padding:24px max(16px,env(safe-area-inset-right,0px)) 24px max(16px,env(safe-area-inset-left,0px))}
+#intro.gone{opacity:0;pointer-events:none}
+.introbox{max-width:620px;display:flex;flex-direction:column;gap:18px;align-items:flex-start}
+.introbox h2{font-family:var(--serif);font-weight:400;font-size:clamp(64px,13vw,132px);line-height:.82;margin:0;letter-spacing:-.01em;text-shadow:0 0 60px rgba(120,220,255,.4)}
+.introbox h2 i{color:var(--lamp)}
+.introbox p{font-family:var(--serif);font-size:clamp(19px,2.6vw,25px);line-height:1.25;margin:0;max-width:30em;text-wrap:pretty}
+.introbox p.fine{font-family:var(--mono);font-size:11px;letter-spacing:.06em;color:var(--mute);line-height:1.6}
+.cta{display:flex;gap:10px;flex-wrap:wrap}
+.cta button{font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;padding:13px 20px;border-radius:99px;border:1px solid var(--line)}
+.cta .go{background:var(--lamp);color:var(--lamp-ink);border-color:var(--lamp)}
+.cta button:hover{filter:brightness(1.12)}
+
+@media (max-width:1180px){#mini{display:none}}
+@media (max-height:640px){#stream{display:none}}
+@media (max-width:960px){
+  #stream{display:none}
+  #side{top:auto;bottom:148px;right:var(--gxr);left:var(--gx);width:auto;max-height:40%}
+  #side.census{display:none}
+  #mast h1{font-size:30px}.stats{gap:12px}.stat b{font-size:14px}
+  #notes{top:112px}.note{font-size:15px}.note:nth-child(n+3){display:none}
+  .sl{display:none}#hint{display:none}
+  .tb{padding:7px 7px;font-size:10px}
+}
+@media (prefers-reduced-motion:reduce){.note{animation:none}#intro{transition:none}}
+</style>
+
+<div id="app">
+  <canvas id="world" aria-label="Living ecosystem of evolving neural organisms"></canvas>
+  <div class="vig"></div>
+
+  <header id="mast">
+    <h1>Primord<i>ia</i></h1>
+    <div class="stats">
+      <div class="stat"><span class="lbl">Tick</span><b id="sT">0</b></div>
+      <div class="stat"><span class="lbl">Alive</span><b id="sN">0</b></div>
+      <div class="stat"><span class="lbl">Species</span><b id="sS">0</b></div>
+      <div class="stat pred"><span class="lbl">Predators</span><b id="sC">0</b></div>
+      <div class="stat"><span class="lbl">Generation</span><b id="sG">0</b></div>
+    </div>
+  </header>
+
+  <section id="notes" aria-live="polite">
+    <div class="head"><span class="lbl">Field notes</span><button id="ask" hidden>Ask Claude what it sees</button></div>
+    <div id="notelist"></div>
+  </section>
+
+  <aside id="side" class="panel census">
+    <div id="census">
+      <div class="rowhead"><span class="lbl">Census of the living</span><span class="lbl" id="cenN"></span></div>
+      <div id="cenlist"></div>
+    </div>
+    <div id="spec" hidden>
+      <div class="rowhead"><span class="lbl" id="spId">Specimen</span><button id="closeSel">Close</button></div>
+      <h2 id="spName">—</h2>
+      <p id="verdict"></p>
+      <div class="kv">
+        <div><span class="lbl">Age</span><b id="kAge">0</b></div>
+        <div><span class="lbl">Gen</span><b id="kGen">0</b></div>
+        <div><span class="lbl">Young</span><b id="kKids">0</b></div>
+        <div><span class="lbl">Kills</span><b id="kKills">0</b></div>
+      </div>
+      <div class="meter"><span class="lbl">Energy</span><div class="track"><div class="fill e" id="mE"></div></div></div>
+      <div class="meter"><span class="lbl">Health</span><div class="track"><div class="fill h" id="mH"></div></div></div>
+      <div class="rowhead"><span class="lbl">Brain, live · senses → neurons → actions</span></div>
+      <canvas id="brain"></canvas>
+      <div class="rowhead"><span class="lbl">Inherited body</span></div>
+      <div class="meter diet"><span class="lbl">Diet</span><div class="track"><div class="pin" id="gDiet"></div></div></div>
+      <div class="meter"><span class="lbl">Size</span><div class="track"><div class="fill" id="gSize"></div></div></div>
+      <div class="meter"><span class="lbl">Speed</span><div class="track"><div class="fill" id="gSpeed"></div></div></div>
+      <div class="meter"><span class="lbl">Sight</span><div class="track"><div class="fill" id="gRange"></div></div></div>
+      <div class="meter"><span class="lbl">Mutability</span><div class="track"><div class="fill" id="gMut"></div></div></div>
+    </div>
+  </aside>
+
+  <section id="stream" class="panel">
+    <div class="rowhead"><span class="lbl">Lineages over time</span><span class="lbl" id="strN"></span></div>
+    <canvas id="streamc"></canvas>
+  </section>
+  <div id="mini" class="panel"><canvas id="minic"></canvas></div>
+
+  <div id="hint">drag to pan · scroll to zoom · click a creature to read its mind</div>
+  <nav id="bar" class="panel" aria-label="Controls">
+    <div class="grp">
+      <button class="tb" id="bPause" aria-pressed="false">Pause</button>
+      <button class="tb sp" data-s="1" aria-pressed="true">1×</button>
+      <button class="tb sp" data-s="4" aria-pressed="false">4×</button>
+      <button class="tb sp" data-s="16" aria-pressed="false">16×</button>
+    </div>
+    <div class="grp">
+      <button class="tb tool" data-t="observe" aria-pressed="true">Observe</button>
+      <button class="tb tool" data-t="feed" aria-pressed="false">Feed</button>
+      <button class="tb tool" data-t="mutate" aria-pressed="false">Irradiate</button>
+      <button class="tb tool danger" data-t="smite" aria-pressed="false">Smite</button>
+    </div>
+    <div class="grp">
+      <button class="tb" id="bAuto" aria-pressed="true" title="Camera follows the most interesting creature">Director</button>
+    </div>
+    <div class="grp">
+      <label class="sl"><span class="lbl">Sunlight</span><input id="abund" type="range" min="0.8" max="4.5" step="0.1" value="3.4"></label>
+      <label class="sl"><span class="lbl">Mutation</span><input id="mut" type="range" min="0.2" max="3" step="0.1" value="1"></label>
+    </div>
+    <div class="grp">
+      <button class="tb" id="bSoup" title="Restart from random brains and watch behaviour evolve from nothing">Restart from soup</button>
+    </div>
+  </nav>
+
+  <div id="intro">
+    <div class="introbox">
+      <span class="lbl">An artificial-life experiment · running live in your browser</span>
+      <h2>Primord<i>ia</i></h2>
+      <p>Every creature in this water steers itself with its own neural network. Nobody programmed them to graze, hunt or flee. They inherited it, one mutation at a time.</p>
+      <div class="cta">
+        <button class="go" id="enter">Enter the water</button>
+        <button id="enterSoup">Start from random brains</button>
+      </div>
+      <p class="fine" id="fine">566 synaptic weights per brain · 12 body genes · no fitness function, only energy, hunger and teeth</p>
+    </div>
+  </div>
+</div>
+<script>
+/*SIM*/
+</script>
+<script>
+/*SEEDS*/
+</script>
+<script>
+/*APP*/
+</script>
